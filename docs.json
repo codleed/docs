@@ -1,122 +1,207 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "LearningoPK",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#2563EB",
+    "light": "#3B82F6",
+    "dark": "#1D4ED8"
   },
   "favicon": "/favicon.svg",
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Getting Started",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Introduction",
             "pages": [
               "index",
-              "quickstart",
-              "development"
+              "quickstart"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Architecture",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "architecture/system-overview",
+              "architecture/tech-stack",
+              "api/database"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "Backend API",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Overview",
             "pages": [
-              "api-reference/introduction"
+              "api/overview"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Authentication",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api/auth"
+            ]
+          },
+          {
+            "group": "Learning",
+            "pages": [
+              "api/learn",
+              "api/quiz",
+              "api/mock-exams",
+              "api/progress"
+            ]
+          },
+          {
+            "group": "AI Tutor",
+            "pages": [
+              "api/ai-chat"
+            ]
+          },
+          {
+            "group": "Community",
+            "pages": [
+              "api/forum"
+            ]
+          },
+          {
+            "group": "Admin",
+            "pages": [
+              "api/admin"
+            ]
+          },
+          {
+            "group": "Utilities",
+            "pages": [
+              "api/health",
+              "api/boards",
+              "api/classes",
+              "api/subjects",
+              "api/institutes",
+              "api/profile",
+              "api/chapter-media"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Frontend",
+        "groups": [
+          {
+            "group": "Pages",
+            "pages": [
+              "frontend/overview",
+              "frontend/dashboard",
+              "frontend/learn",
+              "frontend/auth",
+              "frontend/forum",
+              "frontend/mock-exams",
+              "frontend/stats",
+              "frontend/admin"
+            ]
+          },
+          {
+            "group": "Design System",
+            "pages": [
+              "frontend/design-system"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Infrastructure",
+        "groups": [
+          {
+            "group": "Setup",
+            "pages": [
+              "infra/docker",
+              "infra/environment"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "infra/deployment"
+            ]
+          },
+          {
+            "group": "Services",
+            "pages": [
+              "infra/caching",
+              "infra/load-balancing",
+              "infra/background-jobs"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Development",
+        "groups": [
+          {
+            "group": "Guides",
+            "pages": [
+              "dev/setup",
+              "dev/testing",
+              "dev/contributing"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "dev/code-style",
+              "dev/database-guide",
+              "dev/e2e-testing"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Features",
+        "groups": [
+          {
+            "group": "Platform Features",
+            "pages": [
+              "features/gamification",
+              "features/ai-tutor",
+              "features/forum",
+              "features/progress"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
+    ]
   },
   "logo": {
     "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "dark": "/logo/logo-dark.svg"
   },
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "label": "GitHub",
+        "href": "https://github.com/Codleed/learningopk"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "label": "View on GitHub",
+      "href": "https://github.com/Codleed/learningopk"
     }
   },
   "contextual": {
     "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "cursor"
+    ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "github": "https://github.com/Codleed/learningopk"
     }
   }
 }

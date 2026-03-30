@@ -1,0 +1,341 @@
+---
+title: "E2E Testing"
+description: "Playwright setup, 24 E2E specs overview, and guide for writing new tests"
+---
+
+## Overview
+
+LearningoPK uses [Playwright](https://playwright.dev/) for end-to-end browser testing. The test suite covers 24 spec files spanning authentication flows, admin panels, student learning paths, forum interactions, and UI quality checks. Tests run sequentially with a single worker to avoid database state conflicts.
+
+## Playwright Configuration
+
+The configuration lives in `frontend/playwright.config.ts`:
+
+```typescript
+import { defineConfig } from "@playwright/test";
+
+const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+
+export default defineConfig({
+  testDir: "./tests/e2e",
+  fullyParallel: false,
+  workers: 1,
+  retries: 0,
+  timeout: 180_000,
+  expect: {
+    timeout: 15_000
+  },
+  reporter: "list",
+  globalSetup: "./tests/e2e/global-setup.mjs",
+  use: {
+    baseURL: "http://localhost:3000",
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
+    video: "retain-on-failure"
+  },
+  webServer: [
+    {
+      command: `${pnpmCommand} --filter backend dev`,
+      url: "http://localhost:3001/api/ready",
+      cwd: "..",
+      reuseExistingServer: false,
+      timeout: 180_000
+    },
+    {
+      command: `${pnpmCommand} --filter frontend dev`,
+      url: "http://localhost:3000",
+      cwd: "..",
+      reuseExistingServer: false,
+      timeout: 240_000
+    }
+  ]
+});
+```
+
+| Setting | Value | Purpose |
+|---------|-------|---------|
+| `fullyParallel` | `false` | Sequential execution to prevent DB conflicts |
+| `workers` | `1` | Single worker for isolation |
+| `retries` | `0` | No retries — fail fast |
+| `timeout` | `180_000` (3 min) | Per-test timeout |
+| `expect.timeout` | `15_000` (15s) | Assertion timeout |
+| `trace` | `retain-on-failure` | Record trace only when tests fail |
+| `screenshot` | `only-on-failure` | Capture screenshots on failure |
+| `video` | `retain-on-failure` | Record video only when tests fail |
+
+<Note>
+Both backend (port 3001) and frontend (port 3000) are started automatically by Playwright's `webServer` configuration. The backend has a 3-minute startup timeout, and the frontend has 4 minutes to account for Next.js compilation.
+</Note>
+
+## Global Setup
+
+Before any test runs, Playwright executes `tests/e2e/global-setup.mjs` which seeds the database:
+
+```javascript
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
+
+const execAsync = promisify(exec);
+const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+
+export default async function globalSetup() {
+  await execAsync(`${pnpmCommand} --filter backend db:seed`, {
+    cwd: workspaceRoot,
+    env: process.env,
+    maxBuffer: 10 * 1024 * 1024,
+    shell: true
+  });
+}
+```
+
+This ensures every test run starts with a known database state.
+
+## Running Tests
+
+```bash
+# All E2E tests
+pnpm --filter frontend test:e2e
+
+# Smoke tests only
+pnpm --filter frontend test:e2e:smoke
+
+# Single spec file
+pnpm --filter frontend test:e2e tests/e2e/smoke.spec.ts
+
+# Run with UI mode (debugging)
+pnpm --filter frontend test:e2e --ui
+```
+
+## Spec Files
+
+The suite contains 24 spec files:
+
+| Spec | Category | Description |
+|------|----------|-------------|
+| `smoke.spec.ts` | Core | Full user journey: register → chapter → quiz → AI chat → dashboard |
+| `auth-resilience.spec.ts` | Auth | Error handling for invalid credentials, expired sessions |
+| `phase1-forum-dashboard-chrome.spec.ts` | Forum | Forum thread creation, replies, dashboard integration |
+| `phase2-auth-dashboard.spec.ts` | Auth | Registration, login, dashboard data display |
+| `phase3-auth-layout-routes.spec.ts` | Auth | Layout changes, protected route redirects |
+| `admin-left-rail.spec.ts` | Admin | Left rail navigation and routing |
+| `admin-phase1-shell.spec.ts` | Admin | Admin dashboard shell rendering |
+| `admin-phase2-moderation-users.spec.ts` | Admin | Moderation flags, user management |
+| `admin-phase3-community-analytics.spec.ts` | Admin | Community analytics, forum stats |
+| `admin-phase4-notifications-settings.spec.ts` | Admin | Notification creation, settings panel |
+| `admin-phase5-users-lifecycle.spec.ts` | Admin | User suspension, role changes |
+| `admin-phase6-audit-center.spec.ts` | Admin | Audit log viewing and filtering |
+| `admin-phase7-command-center.spec.ts` | Admin | Command center operations |
+| `admin-phase8-curriculum-builder.spec.ts` | Admin | Curriculum builder CRUD |
+| `admin-summary-editor-codemirror.spec.ts` | Admin | CodeMirror summary editor |
+| `admin-summary-editor-performance.spec.ts` | Admin | Editor load time benchmarks |
+| `admin-summary-graph.spec.ts` | Admin | Chapter link graph visualization |
+| `admin-summary-wikilinks.spec.ts` | Admin | Wiki-style link resolution |
+| `stats-screen.spec.ts` | Stats | Statistics page charts and data |
+| `student-subject-graph.spec.ts` | Student | Subject chapter graph navigation |
+| `student-subject-graph-performance.spec.ts` | Student | Graph rendering performance |
+| `student-subject-page-baseline-performance.spec.ts` | Student | Subject page load benchmarks |
+| `theme-light.spec.ts` | UI | Light theme rendering |
+| `ui-quality.spec.ts` | UI | Visual regression, spacing, typography |
+
+## Writing a New Test
+
+<Steps>
+<Step title="Create the spec file">
+Create a new file in `frontend/tests/e2e/` following the naming convention:
+
+```
+{feature}-{scenario}.spec.ts
+```
+
+Examples: `quiz-timer.spec.ts`, `forum-voting.spec.ts`
+</Step>
+<Step title="Import Playwright utilities">
+```typescript
+import { test, expect } from "@playwright/test";
+```
+</Step>
+<Step title="Write the test">
+```typescript
+test("student can submit quiz with timer", async ({ page }) => {
+  // Navigate to a chapter with a quiz
+  await page.goto("/fbise/9th/mathematics/chapter-1");
+
+  // Click the quiz tab
+  await page.getByRole("link", { name: /Quiz/ }).click();
+  await expect(page).toHaveURL(/tab=quiz/);
+
+  // Verify timer is visible
+  await expect(page.getByTestId("quiz-timer")).toBeVisible();
+
+  // Select an answer
+  await page.locator("button").filter({ hasText: /^A\./ }).first().click();
+
+  // Submit
+  await page.getByRole("button", { name: "Submit Quiz" }).click();
+
+  // Verify result
+  await expect(page.getByText("Result")).toBeVisible();
+});
+```
+</Step>
+<Step title="Run the test">
+```bash
+pnpm --filter frontend test:e2e tests/e2e/quiz-timer.spec.ts
+```
+</Step>
+</Steps>
+
+## Testing Patterns
+
+### Page Navigation
+
+```typescript
+await page.goto("/dashboard");
+await expect(page).toHaveURL(/\/dashboard$/);
+```
+
+### Form Interaction
+
+```typescript
+await page.getByLabel("Email").fill("test@example.com");
+await page.getByLabel("Password").fill("StrongPass123");
+await page.getByRole("button", { name: "Create account" }).click();
+```
+
+### Waiting for Navigation
+
+```typescript
+await Promise.all([
+  page.waitForURL(/tab=quiz/),
+  page.getByRole("link", { name: "Quiz" }).click()
+]);
+```
+
+### Visibility Assertions
+
+```typescript
+await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+await expect(page.locator("[data-testid='chapter-card']")).toHaveCount(10);
+```
+
+### API Calls in Tests
+
+```typescript
+test("fetch forum filters", async ({ request }) => {
+  const response = await request.get("http://localhost:3001/api/forum/filters");
+  expect(response.ok()).toBeTruthy();
+  const data = await response.json();
+  expect(data.boards.length).toBeGreaterThan(0);
+});
+```
+
+### Polling for Async Operations
+
+```typescript
+const assistantBubble = page.locator("aside div.bg-zinc-100").last();
+await expect
+  .poll(
+    async () => (await assistantBubble.textContent())?.trim() ?? "",
+    { timeout: 90_000 }
+  )
+  .toMatch(/\S/);
+```
+
+This is used for AI chat responses which can take several seconds.
+
+### Error State Handling
+
+```typescript
+const assistantVisible = await assistantBubble.isVisible({ timeout: 45_000 });
+if (assistantVisible) {
+  await expect
+    .poll(async () => (await assistantBubble.textContent())?.trim() ?? "")
+    .not.toBe("Thinking...");
+} else {
+  const assistantError = page
+    .locator("aside p")
+    .filter({ hasText: /API key is not configured|request failed/i })
+    .first();
+  await expect(assistantError).toBeVisible();
+}
+```
+
+## Smoke Test
+
+The smoke test (`smoke.spec.ts`) covers the critical user path:
+
+1. **Register** — Create a new student account
+2. **Navigate** — Find a chapter with seeded quiz data
+3. **Quiz** — Submit answers and verify result display
+4. **AI Chat** — Open the tutor, send a message, verify response
+5. **Dashboard** — Confirm quiz submission appears in recent activity
+
+```typescript
+test("register -> chapter -> quiz -> AI chat -> dashboard", async ({ page }) => {
+  const route = await pickChapterRouteWithQuiz(page.request);
+  const timestamp = Date.now();
+
+  // Register
+  await page.goto("/register");
+  await page.getByLabel("Name").fill("Smoke Test Student");
+  await page.getByLabel("Email").fill(`smoke_flow_${timestamp}@example.com`);
+  // ... fill remaining fields ...
+  await page.getByRole("button", { name: "Create account" }).click();
+
+  // Navigate to chapter
+  await page.goto(`/${route.boardSlug}/${route.grade}/${route.subjectSlug}/${route.chapterSlug}`);
+
+  // Submit quiz
+  await page.getByRole("link", { name: /Quiz/ }).first().click();
+  await page.locator("button").filter({ hasText: /^A\./ }).first().click();
+  await page.getByRole("button", { name: /Submit Quiz/ }).click();
+
+  // Verify result
+  await expect(page.getByText("Result", { exact: true })).toBeVisible();
+
+  // Test AI chat
+  await page.getByRole("button", { name: "Open AI Tutor" }).click();
+  await page.locator("#ai-chat-input").fill("Help me solve this.");
+  await page.getByRole("button", { name: "Send" }).click();
+
+  // Verify dashboard
+  await page.goto("/dashboard");
+  await expect(page.getByText(/Quiz submitted in/i)).toBeVisible();
+});
+```
+
+## Debugging
+
+### Trace Viewer
+
+Failed tests automatically capture traces. View them with:
+
+```bash
+npx playwright show-trace test-results/path-to-trace.zip
+```
+
+### UI Mode
+
+For interactive debugging:
+
+```bash
+pnpm --filter frontend test:e2e --ui
+```
+
+### Screenshots and Videos
+
+On failure, Playwright saves:
+- **Screenshots**: `test-results/*.png`
+- **Videos**: `test-results/*.webm`
+- **Traces**: `test-results/*.zip`
+
+## CI Considerations
+
+- Tests run sequentially (`workers: 1`) to avoid race conditions on the shared database
+- The `webServer` config starts both backend and frontend automatically
+- No retries (`retries: 0`) — failures should be investigated, not masked
+- `reuseExistingServer: false` ensures a clean environment per run
+
+<Warning>
+E2E tests modify the database. The global setup seeds fresh data before each run. Do not run E2E tests against a production database.
+</Warning>

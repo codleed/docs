@@ -1,0 +1,317 @@
+---
+title: "Forum Pages & Components"
+description: "Community forum for student discussions — thread browsing, creation, replies, and voting"
+---
+
+## Overview
+
+The forum enables students to ask questions, share solutions, and help each other. Threads can be linked to specific subjects and chapters. The forum supports nested replies, upvote/downvote voting, and accepted answers.
+
+## Page Routing
+
+| Route | Page | Description |
+|-------|------|-------------|
+| `/forum` | `app/(main)/forum/page.tsx` | Forum thread feed with filters |
+| `/forum/[threadId]` | `app/(main)/forum/[threadId]/page.tsx` | Thread detail with replies |
+
+<Note>
+Forum pages are inside the `(main)` route group and include the full app shell (sidebar, navigation). Thread listing is public; creating threads, replying, and voting require authentication.
+</Note>
+
+---
+
+## Components
+
+### ForumFilterBar
+
+Filter controls for narrowing the thread feed by board, grade, subject, chapter, and solved status.
+
+**Location:** `src/components/forum/forum-filter-bar.tsx`
+
+```tsx
+import { ForumFilterBar } from "@/components/forum/forum-filter-bar";
+
+<ForumFilterBar
+  filters={filterOptions}
+  activeFilters={currentFilters}
+  onFilterChange={handleFilterChange}
+/>
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `filters` | `ForumFilterOptions` | Available filter values from `GET /api/forum/filters` |
+| `activeFilters` | `ActiveFilters` | Currently selected filter values |
+| `onFilterChange` | `(filters: ActiveFilters) => void` | Callback when filters change |
+
+**Filter Options (from API):**
+- `boards` — list of `{ id, name, slug }`
+- `classes` — list of `{ id, boardId, name, slug }`
+- `subjects` — list of `{ id, boardClassId, name, slug }`
+- `chapters` — list of `{ id, subjectId, chapterNumber, title }`
+
+**Additional Controls:**
+- Text search input (queries thread titles)
+- Solved status toggle: All / Solved / Unsolved
+
+### ForumThreadFeed
+
+Main feed component that loads and displays threads based on active filters.
+
+**Location:** `src/components/forum/forum-thread-feed.tsx`
+
+```tsx
+import { ForumThreadFeed } from "@/components/forum/forum-thread-feed";
+
+<ForumThreadFeed filters={activeFilters} />
+```
+
+**Data Flow:**
+1. Receives filter state from `ForumFilterBar`
+2. Calls `GET /api/forum/threads` with filter query params
+3. Renders `ForumThreadCard` for each thread
+4. Handles pagination with `limit`/`offset`
+
+### ForumThreadCard
+
+Individual thread preview card displayed in the feed.
+
+**Location:** `src/components/forum/forum-thread-card.tsx`
+
+```tsx
+import { ForumThreadCard } from "@/components/forum/forum-thread-card";
+
+<ForumThreadCard thread={threadData} />
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `thread` | `ForumThread` | Thread object from the API |
+
+**Displays:**
+- Thread title (linked to `/forum/[threadId]`)
+- Author name and relative timestamp
+- Subject/chapter badges
+- Reply count
+- View count
+- Solved indicator (green checkmark badge when `isSolved: true`)
+- Pinned indicator (when `isPinned: true`)
+
+### ForumThreadList
+
+Container that renders a list of `ForumThreadCard` components with empty state.
+
+**Location:** `src/components/forum/forum-thread-list.tsx`
+
+```tsx
+import { ForumThreadList } from "@/components/forum/forum-thread-list";
+
+<ForumThreadList threads={threads} loading={isLoading} />
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `threads` | `ForumThread[]` | Array of thread objects |
+| `loading` | `boolean` | Shows skeleton loaders when true |
+
+### ForumThreadForm
+
+Form for creating a new forum thread.
+
+**Location:** `src/components/forum/forum-thread-form.tsx`
+
+```tsx
+import { ForumThreadForm } from "@/components/forum/forum-thread-form";
+
+<ForumThreadForm onSuccess={handleThreadCreated} />
+```
+
+**Fields:**
+
+| Field | Type | Validation |
+|-------|------|------------|
+| `title` | string | 5–160 characters |
+| `body` | string | Minimum 10 characters |
+| `subjectId` | number? | Optional subject link |
+| `chapterId` | number? | Optional chapter link |
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `onSuccess` | `(thread: ForumThread) => void` | Callback after successful creation |
+
+**Data Flow:**
+1. User fills in title, body, and optionally links a subject/chapter
+2. `POST /api/forum/threads` is called (rate-limited)
+3. On success, navigates to `/forum/[threadId]` or calls `onSuccess`
+4. On `422`, displays content moderation error
+
+### ForumThreadHeader
+
+Thread detail header showing title, author, metadata, and action buttons.
+
+**Location:** `src/components/forum/forum-thread-header.tsx`
+
+```tsx
+import { ForumThreadHeader } from "@/components/forum/forum-thread-header";
+
+<ForumThreadHeader thread={thread} />
+```
+
+**Displays:**
+- Thread title
+- Author avatar + name
+- Relative timestamp
+- Subject and chapter badges
+- View count
+- Solved badge (if applicable)
+- Pin indicator (if applicable)
+
+### ForumReplyList
+
+Renders the nested reply tree for a thread.
+
+**Location:** `src/components/forum/forum-reply-list.tsx`
+
+```tsx
+import { ForumReplyList } from "@/components/forum/forum-reply-list";
+
+<ForumReplyList
+  replies={thread.replies}
+  threadAuthorId={thread.userId}
+  viewerId={session?.user?.id}
+/>
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `replies` | `ForumReply[]` | Nested reply tree from the API |
+| `threadAuthorId` | `string` | Thread author's user ID (for accept button) |
+| `viewerId` | `string?` | Current user's ID (for own-reply detection) |
+
+**Features:**
+- Nested indentation for child replies
+- Accepted answer highlighted with green border
+- Reply-to-reply inline form
+
+### ForumReplyForm
+
+Textarea form for posting a reply to a thread or to another reply.
+
+**Location:** `src/components/forum/forum-reply-form.tsx`
+
+```tsx
+import { ForumReplyForm } from "@/components/forum/forum-reply-form";
+
+// Top-level reply
+<ForumReplyForm threadId={thread.id} />
+
+// Nested reply
+<ForumReplyForm threadId={thread.id} parentReplyId={parentReply.id} />
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `threadId` | `string` | Thread UUID |
+| `parentReplyId` | `string?` | Parent reply UUID for nested replies |
+| `onSuccess` | `(reply: ForumReply) => void` | Callback after successful reply |
+
+**Data Flow:**
+1. User types reply content
+2. `POST /api/forum/threads/:threadId/replies` is called (rate-limited)
+3. Reply is optimistically added to the list
+4. On `422`, content moderation error is displayed
+
+### ForumReplyActions
+
+Action buttons on each reply — upvote, downvote, accept (for thread author).
+
+**Location:** `src/components/forum/forum-reply-actions.tsx`
+
+```tsx
+import { ForumReplyActions } from "@/components/forum/forum-reply-actions";
+
+<ForumReplyActions
+  reply={reply}
+  isThreadAuthor={isThreadAuthor}
+  viewerVoteType={reply.viewerVoteType}
+/>
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `reply` | `ForumReply` | Reply object |
+| `isThreadAuthor` | `boolean` | Whether the viewer owns the thread |
+| `viewerVoteType` | `"upvote" \| "downvote" \| null` | Viewer's current vote |
+
+**Actions:**
+- **Upvote** — `POST /api/forum/replies/:replyId/vote` with `voteType: "upvote"` (toggle)
+- **Downvote** — `POST /api/forum/replies/:replyId/vote` with `voteType: "downvote"` (toggle)
+- **Accept** — `POST /api/forum/replies/:replyId/accept` (thread author only, marks reply as accepted answer)
+
+<Note>
+Voting is toggle-based: casting the same vote type again removes the vote. A user cannot both upvote and downvote the same reply.
+</Note>
+
+---
+
+## Component Hierarchy
+
+```
+forum/
+├── page.tsx (Thread Feed Page)
+│   └── ForumThreadFeed
+│       ├── ForumFilterBar
+│       │   ├── Select (board, grade, subject, chapter)
+│       │   ├── Input (search)
+│       │   └── Toggle (solved status)
+│       ├── ForumThreadList
+│       │   └── ForumThreadCard[] (linked to /forum/[threadId])
+│       └── ForumThreadForm (create new thread)
+│
+└── [threadId]/
+    └── page.tsx (Thread Detail Page)
+        ├── ForumThreadHeader
+        ├── ThreadBody (markdown rendered)
+        ├── ForumReplyList
+        │   └── ForumReplyActions (upvote, downvote, accept)
+        │       └── ForumReplyForm (nested reply)
+        └── ForumReplyForm (top-level reply)
+```
+
+## Data Flow
+
+<Accordion title="Thread Feed">
+1. `ForumFilterBar` fetches filter options from `GET /api/forum/filters` on mount
+2. When filters change, `ForumThreadFeed` calls `GET /api/forum/threads?board=...&grade=...&q=...&solved=...`
+3. Results are rendered as `ForumThreadCard` components
+4. Pagination uses `limit`/`offset` query params
+</Accordion>
+
+<Accordion title="Thread Detail">
+1. Page calls `GET /api/forum/threads/:threadId?trackView=true` to fetch thread + replies
+2. `ForumThreadHeader` displays metadata
+3. `ForumReplyList` renders the nested reply tree
+4. Each reply has `ForumReplyActions` for voting/accepting
+5. `ForumReplyForm` at the bottom for new top-level replies
+6. Inline `ForumReplyForm` for nested replies
+</Accordion>
+
+<Accordion title="Voting & Acceptance">
+- **Upvote/Downvote:** `POST /api/forum/replies/:replyId/vote` — toggle behavior, updates `upvotes` count locally
+- **Accept Answer:** `POST /api/forum/replies/:replyId/accept` — thread author only, marks thread as `isSolved: true`
+- All mutation endpoints are rate-limited per user
+</Accordion>

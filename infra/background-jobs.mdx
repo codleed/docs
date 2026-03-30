@@ -1,0 +1,391 @@
+---
+title: "Background Jobs"
+description: "BullMQ queue architecture, workers, job registry, and retry policies"
+---
+
+## Overview
+
+LearningoPK uses [BullMQ](https://docs.bullmq.io/) backed by Redis for background job processing. The system handles analytics aggregation, email delivery, and stale session cleanup through a queue/worker architecture with typed job definitions and configurable retry policies.
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│                    Queue Definitions                 │
+│  analyticsQueue  │  emailQueue  │  cleanupQueue      │
+└────────┬─────────┴──────┬───────┴──────┬─────────────┘
+         │                │              │
+    ┌────▼────┐     ┌─────▼─────┐  ┌────▼─────┐
+    │ Worker  │     │  Worker   │  │  Worker  │
+    │ (conc=2)│     │  (conc=1) │  │ (conc=1) │
+    └────┬────┘     └─────┬─────┘  └────┬─────┘
+         │                │              │
+    ┌────▼────┐     ┌─────▼─────┐  ┌────▼──────┐
+    │analytics│     │  email    │  │  cleanup  │
+    │  jobs   │     │  jobs     │  │  jobs     │
+    └─────────┘     └───────────┘  └───────────┘
+```
+
+## Connection Setup
+
+All queues share a single Redis connection created in `backend/src/lib/queue.ts`:
+
+```typescript
+import { Redis } from "ioredis";
+import { env } from "./env.js";
+
+const redisConnection = new Redis(env.REDIS_URL, {
+  maxRetriesPerRequest: null,
+});
+
+export const connection = redisConnection;
+```
+
+<Warning>
+`maxRetriesPerRequest: null` is required by BullMQ. Without it, Redis commands from the worker may timeout and cause jobs to fail prematurely.
+</Warning>
+
+## Queue Definitions
+
+Three queues are defined, each with tailored retry and retention policies:
+
+### Analytics Queue
+
+```typescript
+export const analyticsQueue = new Queue("analytics", {
+  connection: redisConnection,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: { type: "exponential", delay: 1000 },
+    removeOnComplete: { count: 1000 },
+    removeOnFail: { count: 5000 },
+  },
+});
+```
+
+### Email Queue
+
+```typescript
+export const emailQueue = new Queue("email", {
+  connection: redisConnection,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: { type: "fixed", delay: 5000 },
+    removeOnComplete: { count: 1000 },
+    removeOnFail: { count: 5000 },
+  },
+});
+```
+
+### Cleanup Queue
+
+```typescript
+export const cleanupQueue = new Queue("cleanup", {
+  connection: redisConnection,
+  defaultJobOptions: {
+    attempts: 2,
+    backoff: { type: "exponential", delay: 1000 },
+    removeOnComplete: { count: 1000 },
+    removeOnFail: { count: 5000 },
+  },
+});
+```
+
+| Queue | Retries | Backoff | Retention (complete) | Retention (failed) |
+|-------|---------|---------|---------------------|-------------------|
+| `analytics` | 3 | Exponential (1s) | 1,000 jobs | 5,000 jobs |
+| `email` | 3 | Fixed (5s) | 1,000 jobs | 5,000 jobs |
+| `cleanup` | 2 | Exponential (1s) | 1,000 jobs | 5,000 jobs |
+
+## Job Types
+
+All job data types are defined in `backend/src/jobs/types.ts`:
+
+```typescript
+export interface DailyAnalyticsJobData {
+  date: string;
+}
+
+export interface WeeklyReportJobData {
+  weekStart: string;
+  weekEnd: string;
+}
+
+export interface StaleSessionCleanupJobData {
+  olderThan: string;
+}
+
+export interface EmailJobData {
+  type: "weekly-digest" | "notification" | "password-reset";
+  recipientId: string;
+  email: string;
+  data: Record<string, unknown>;
+}
+
+export type AnalyticsJob = Job<DailyAnalyticsJobData | WeeklyReportJobData>;
+export type CleanupJob = Job<StaleSessionCleanupJobData>;
+export type EmailJob = Job<EmailJobData>;
+```
+
+## Job Registry
+
+The `jobRegistry` array in `queue.ts` is the single source of truth for all scheduled and on-demand jobs:
+
+```typescript
+export interface JobDefinition {
+  name: string;
+  queue: Queue;
+  cron?: string;
+  concurrency?: number;
+  retryAttempts?: number;
+  backoff?: { type: "exponential" | "fixed"; delay: number };
+}
+
+export const jobRegistry: JobDefinition[] = [
+  {
+    name: "daily-analytics",
+    queue: analyticsQueue,
+    cron: "0 0 * * *",
+    concurrency: 2,
+    retryAttempts: 3,
+    backoff: { type: "exponential", delay: 1000 },
+  },
+  {
+    name: "weekly-email",
+    queue: emailQueue,
+    cron: "0 9 * * 0",
+    concurrency: 1,
+    retryAttempts: 3,
+    backoff: { type: "fixed", delay: 5000 },
+  },
+  {
+    name: "stale-session-cleanup",
+    queue: cleanupQueue,
+    cron: "0 */6 * * *",
+    concurrency: 1,
+    retryAttempts: 2,
+  },
+];
+```
+
+| Job | Schedule | Description |
+|-----|----------|-------------|
+| `daily-analytics` | Midnight daily (`0 0 * * *`) | Aggregates daily platform metrics |
+| `weekly-email` | Sunday 9 AM (`0 9 * * 0`) | Sends weekly digest emails |
+| `stale-session-cleanup` | Every 6 hours (`0 */6 * * *`) | Removes sessions without TTL from Redis |
+
+## Workers
+
+Each queue has a dedicated worker factory in `backend/src/workers/`:
+
+### Analytics Worker
+
+```typescript
+// backend/src/workers/analytics.worker.ts
+export function createAnalyticsWorker() {
+  const worker = new Worker(
+    "analytics",
+    async (job) => {
+      if (job.name === "daily-analytics") {
+        return processDailyAnalytics(job);
+      }
+      if (job.name === "weekly-email") {
+        return processWeeklyReport(job);
+      }
+      throw new Error(`Unknown job name: ${job.name}`);
+    },
+    {
+      connection,
+      concurrency: 2,
+    }
+  );
+
+  worker.on("completed", (job) => {
+    console.log(`Analytics job ${job.id} completed`);
+  });
+
+  worker.on("failed", (job, err) => {
+    console.error(`Analytics job ${job?.id} failed:`, err);
+  });
+
+  return worker;
+}
+```
+
+### Email Worker
+
+```typescript
+// backend/src/workers/email.worker.ts
+export function createEmailWorker() {
+  const worker = new Worker(
+    "email",
+    async (job) => {
+      return processEmailJob(job);
+    },
+    {
+      connection,
+      concurrency: 1,
+    }
+  );
+  return worker;
+}
+```
+
+### Cleanup Worker
+
+```typescript
+// backend/src/workers/cleanup.worker.ts
+export function createCleanupWorker() {
+  const worker = new Worker(
+    "cleanup",
+    async (job) => {
+      return processStaleSessionCleanup(job);
+    },
+    {
+      connection,
+      concurrency: 1,
+    }
+  );
+  return worker;
+}
+```
+
+<Note>
+Worker concurrency is set independently from job registry concurrency. The worker `concurrency` controls how many jobs process simultaneously in that process. The registry `concurrency` is metadata for scheduler configuration.
+</Note>
+
+## Job Processors
+
+Job processors live in `backend/src/jobs/` and contain the actual business logic:
+
+### Cleanup — Stale Sessions
+
+```typescript
+export async function processStaleSessionCleanup(
+  job: CleanupJob
+): Promise<void> {
+  const data = job.data as StaleSessionCleanupJobData;
+  console.log(`Processing stale session cleanup for sessions older than ${data.olderThan}`);
+
+  await job.updateProgress(10);
+
+  const keys = await redis.keys("session:*");
+  let cleanedCount = 0;
+
+  for (const key of keys) {
+    const ttl = await redis.ttl(key);
+    if (ttl === -1) {
+      await redis.del(key);
+      cleanedCount++;
+    }
+  }
+
+  await job.updateProgress(100);
+  console.log(`Cleaned up ${cleanedCount} stale sessions`);
+}
+```
+
+This processor finds all `session:*` keys with no TTL (persistent sessions) and deletes them.
+
+### Analytics & Email
+
+Analytics and email processors are scaffolded with progress tracking:
+
+```typescript
+export async function processDailyAnalytics(job: AnalyticsJob): Promise<void> {
+  const data = job.data as DailyAnalyticsJobData;
+  console.log(`Processing daily analytics for ${data.date}`);
+  await job.updateProgress(10);
+  // ... aggregation logic ...
+  await job.updateProgress(100);
+}
+```
+
+## Adding a New Job
+
+<Steps>
+<Step title="Define job data type">
+Add an interface to `backend/src/jobs/types.ts`:
+
+```typescript
+export interface ReportExportJobData {
+  userId: string;
+  format: "pdf" | "csv";
+  range: string;
+}
+export type ReportExportJob = Job<ReportExportJobData>;
+```
+</Step>
+<Step title="Create or reuse a queue">
+If the job fits an existing queue, use it. Otherwise add a new queue in `queue.ts`:
+
+```typescript
+export const reportQueue = new Queue("report", {
+  connection: redisConnection,
+  defaultJobOptions: {
+    attempts: 2,
+    backoff: { type: "fixed", delay: 10_000 },
+    removeOnComplete: { count: 500 },
+    removeOnFail: { count: 2000 },
+  },
+});
+```
+</Step>
+<Step title="Write the processor">
+Create a processor in `backend/src/jobs/report.ts`:
+
+```typescript
+export async function processReportExport(
+  job: ReportExportJob
+): Promise<void> {
+  const data = job.data;
+  // ... export logic ...
+}
+```
+</Step>
+<Step title="Create the worker">
+Create `backend/src/workers/report.worker.ts`:
+
+```typescript
+export function createReportWorker() {
+  return new Worker("report", async (job) => {
+    return processReportExport(job);
+  }, { connection, concurrency: 1 });
+}
+```
+</Step>
+<Step title="Register in the job registry">
+Add to `jobRegistry` in `queue.ts`:
+
+```typescript
+{
+  name: "report-export",
+  queue: reportQueue,
+  concurrency: 1,
+  retryAttempts: 2,
+  backoff: { type: "fixed", delay: 10_000 },
+}
+```
+</Step>
+</Steps>
+
+## Queue Export
+
+All queues are aggregated for lifecycle management:
+
+```typescript
+export const allQueues = [analyticsQueue, emailQueue, cleanupQueue];
+```
+
+This is used for graceful shutdown and cleanup operations.
+
+## Monitoring
+
+Each worker logs completion and failure events:
+
+```
+Analytics job 42 completed
+Analytics job 43 failed: Error: Database connection lost
+```
+
+For production, integrate with a BullMQ dashboard like [Bull Board](https://github.com/felixmosh/bull-board) or [Arena](https://github.com/bee-queue/arena) to monitor queue depth, job status, and failure rates.

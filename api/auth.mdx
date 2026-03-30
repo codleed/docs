@@ -1,0 +1,264 @@
+---
+title: Authentication
+description: User registration, login, logout, and session management via Better Auth.
+---
+
+## Overview
+
+Authentication is handled by [Better Auth](https://www.better-auth.com/) with a Drizzle adapter. Sessions use secure HTTP-only cookies for XSS protection.
+
+Base path: `/api/auth/*`
+
+<Warning>
+Password reset functionality is **not currently enabled**. Users who forget passwords must contact support. Social login and email verification are also not yet implemented.
+</Warning>
+
+---
+
+## Sign up email
+
+Register a new student account with email and password.
+
+```bash
+POST /api/auth/sign-up/email
+```
+
+**Auth**: None
+
+### Request body
+
+<ResponseField name="name" type="string" required>
+  Display name for the user.
+</ResponseField>
+
+<ResponseField name="email" type="string" required>
+  Valid email address.
+</ResponseField>
+
+<ResponseField name="password" type="string" required>
+  Password — minimum 8 characters.
+</ResponseField>
+
+<ResponseField name="class" type="string" required>
+  Student's class/grade (e.g., `"9"`, `"10"`).
+</ResponseField>
+
+<ResponseField name="board" type="string" required>
+  Education board slug (e.g., `"punjab"`, `"federal"`).
+</ResponseField>
+
+<ResponseField name="degree" type="string">
+  Degree program — optional.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:3001/api/auth/sign-up/email \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Ahmed Khan",
+    "email": "ahmed@example.com",
+    "password": "securePass123",
+    "class": "9",
+    "board": "punjab"
+  }'
+```
+
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "user": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Ahmed Khan",
+    "email": "ahmed@example.com",
+    "class": "9",
+    "board": "punjab",
+    "degree": null,
+    "role": "student",
+    "createdAt": "2026-03-28T10:00:00.000Z",
+    "updatedAt": "2026-03-28T10:00:00.000Z"
+  },
+  "session": {
+    "id": "...",
+    "userId": "550e8400-e29b-41d4-a716-446655440000",
+    "expiresAt": "2026-04-04T10:00:00.000Z"
+  }
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid payload — missing or malformed fields |
+| `409` | Email already registered |
+
+---
+
+## Sign in email
+
+Authenticate with email and password to create a session.
+
+```bash
+POST /api/auth/sign-in/email
+```
+
+**Auth**: None
+
+### Request body
+
+<ResponseField name="email" type="string" required>
+  Registered email address.
+</ResponseField>
+
+<ResponseField name="password" type="string" required>
+  Account password.
+</ResponseField>
+
+<ResponseField name="rememberMe" type="boolean">
+  Extend session duration when `true`.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:3001/api/auth/sign-in/email \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "ahmed@example.com",
+    "password": "securePass123"
+  }'
+```
+
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "user": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Ahmed Khan",
+    "email": "ahmed@example.com",
+    "role": "student"
+  },
+  "session": {
+    "id": "...",
+    "userId": "550e8400-e29b-41d4-a716-446655440000",
+    "expiresAt": "2026-04-04T10:00:00.000Z"
+  }
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `401` | Invalid credentials |
+
+---
+
+## Sign out
+
+Destroy the current session and clear the auth cookie.
+
+```bash
+POST /api/auth/sign-out
+```
+
+**Auth**: Student
+
+### Response
+
+```json
+{
+  "message": "Signed out"
+}
+```
+
+---
+
+## Get session
+
+Retrieve the current authenticated session data. Returns `null` if not logged in.
+
+```bash
+GET /api/auth/get-session
+```
+
+**Auth**: Student
+
+### Response
+
+```json
+{
+  "session": {
+    "id": "...",
+    "userId": "550e8400-e29b-41d4-a716-446655440000",
+    "expiresAt": "2026-04-04T10:00:00.000Z",
+    "user": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Ahmed Khan",
+      "email": "ahmed@example.com",
+      "role": "student",
+      "board": "punjab",
+      "class": "9"
+    }
+  }
+}
+```
+
+If not authenticated:
+
+```json
+{
+  "session": null
+}
+```
+
+---
+
+## Upload profile image
+
+Upload or replace the authenticated user's profile picture.
+
+```bash
+PUT /api/profile/me/profile-image
+```
+
+**Auth**: Student
+
+### Request
+
+Send as `multipart/form-data`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `image` | file | Yes | Image file (JPEG, PNG, WebP). Max 2 MB. |
+
+### Response
+
+```json
+{
+  "imageUrl": "https://storage.example.com/profile-images/user-id.webp"
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Missing image file or unsupported image type |
+| `500` | Upload failed |
+
+<Tip>
+Better Auth handles all cookie management, password hashing, and session validation automatically. No manual JWT handling is needed.
+</Tip>

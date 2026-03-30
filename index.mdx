@@ -1,97 +1,122 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "LearningoPK Documentation"
+description: "A free, open-source web learning platform for 9th and 10th grade Pakistani students across Federal, Punjab, and Sindh boards."
 ---
 
-## Setting up
+## What is LearningoPK?
 
-Get your documentation site up and running in minutes.
+LearningoPK is a full-stack web learning platform built for 9th and 10th grade students in Pakistan. It provides chapter-wise solutions, an AI-powered Socratic tutor, quizzes, mock exams, flashcards, a student community forum, and subject-wise progress tracking.
+
+The platform covers three major boards:
+
+- **Federal Board** — All core and elective subjects
+- **Punjab Board** — All core and elective subjects
+- **Sindh Board** — All core and elective subjects
+
+## Key Features
+
+<Columns cols={2}>
+  <Card
+    title="Chapter Solutions"
+    icon="book-open"
+    href="/frontend/learn"
+  >
+    Step-by-step solutions organized by chapter, exercise, and difficulty level.
+  </Card>
+  <Card
+    title="AI Socratic Tutor"
+    icon="robot"
+    href="/api/ai-chat"
+  >
+    An AI teacher powered by Mistral that guides students through problems by asking questions, not giving answers.
+  </Card>
+  <Card
+    title="Quizzes & Mock Exams"
+    icon="clipboard-check"
+    href="/api/quiz"
+  >
+    MCQ-based chapter quizzes and board-pattern mock exams with instant scoring and explanations.
+  </Card>
+  <Card
+    title="Progress Tracking"
+    icon="chart-line"
+    href="/api/progress"
+  >
+    Track chapter completion, quiz scores, and study streaks across all subjects.
+  </Card>
+  <Card
+    title="Student Forum"
+    icon="comments"
+    href="/api/forum"
+  >
+    A community space where students discuss problems, share tips, and help each other.
+  </Card>
+  <Card
+    title="Flashcards"
+    icon="layer-group"
+    href="/frontend/learn"
+  >
+    Chapter-wise flashcards for quick revision of key concepts and definitions.
+  </Card>
+</Columns>
+
+## Tech Stack at a Glance
+
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | Next.js 16 (App Router), Tailwind CSS, HeroUI |
+| **Backend** | Express.js 5, TypeScript |
+| **Database** | PostgreSQL 16 (Docker) |
+| **ORM** | Drizzle ORM (28 tables) |
+| **Auth** | Better Auth with Drizzle adapter |
+| **AI** | Mistral AI via Vercel AI SDK |
+| **Cache** | Redis 7 |
+| **Storage** | MinIO (S3-compatible) |
+| **Testing** | Node.js test runner + Playwright E2E |
+| **Package Manager** | pnpm workspaces (monorepo) |
+
+## Quick Start
+
+Get the full platform running locally in under 5 minutes.
 
 <Card
-  title="Start here"
+  title="Quickstart Guide"
   icon="rocket"
   href="/quickstart"
   horizontal
 >
-  Follow our three step quickstart guide.
+  Follow the step-by-step setup instructions to run LearningoPK on your machine.
 </Card>
 
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
+## Explore the Docs
 
 <Columns cols={2}>
   <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
+    title="System Architecture"
+    icon="sitemap"
+    href="/architecture/system-overview"
   >
-    Edit your docs locally and preview them in real time.
+    Understand the request flow, tech decisions, and component structure.
   </Card>
   <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
+    title="Backend API Reference"
+    icon="server"
+    href="/api/auth"
   >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+    Explore authentication, learning, AI tutor, and admin API endpoints.
   </Card>
   <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
+    title="Frontend Pages"
+    icon="browser"
+    href="/frontend/overview"
   >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
-
-## Create beautiful pages
-
-Everything you need to create world-class documentation.
-
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
+    Dashboard, learning interface, and admin panel documentation.
   </Card>
   <Card
-    title="Code samples"
+    title="Development Guide"
     icon="code"
-    href="/essentials/code"
+    href="/dev/setup"
   >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
+    Local setup, testing, and contribution guidelines.
   </Card>
 </Columns>
-
-## Need inspiration?
-
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>

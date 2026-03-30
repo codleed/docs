@@ -1,0 +1,220 @@
+---
+title: Progress API
+description: Student progress tracking — events, dashboard, and subject-level analytics.
+---
+
+## Overview
+
+The Progress API tracks each student's learning journey through progress events. Events are recorded when students visit chapters, view exercises, complete flashcards, or submit quizzes.
+
+---
+
+## Record progress event
+
+Submit a learning activity event to update the student's progress.
+
+```bash
+POST /api/progress/events
+```
+
+**Auth**: Student
+
+### Request body
+
+The request body uses a discriminated union based on `eventType`:
+
+<Tabs>
+  <Tab title="chapter_visit">
+    <ResponseField name="eventType" type='"chapter_visit"' required />
+    <ResponseField name="chapterId" type="number" required>
+      The chapter ID that was visited.
+    </ResponseField>
+  </Tab>
+  
+  <Tab title="exercise_view">
+    <ResponseField name="eventType" type='"exercise_view"' required />
+    <ResponseField name="chapterId" type="number" required>
+      The chapter ID whose exercise was viewed.
+    </ResponseField>
+  </Tab>
+  
+  <Tab title="flashcard_complete">
+    <ResponseField name="eventType" type='"flashcard_complete"' required />
+    <ResponseField name="chapterId" type="number" required>
+      The chapter ID whose flashcards were completed.
+    </ResponseField>
+  </Tab>
+  
+  <Tab title="quiz_submit">
+    <ResponseField name="eventType" type='"quiz_submit"' required />
+    <ResponseField name="chapterId" type="number" required>
+      The chapter ID of the submitted quiz.
+    </ResponseField>
+    <ResponseField name="score" type="number" required>
+      The quiz score (non-negative integer).
+    </ResponseField>
+  </Tab>
+</Tabs>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:3001/api/progress/events \
+  -H "Content-Type: application/json" \
+  -H "Cookie: better-auth.session_token=..." \
+  -d '{
+    "eventType": "chapter_visit",
+    "chapterId": 5
+  }'
+```
+
+```json Quiz submit example
+{
+  "eventType": "quiz_submit",
+  "chapterId": 5,
+  "score": 8
+}
+```
+
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "recorded": true,
+  "eventType": "chapter_visit",
+  "chapterId": 5
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid progress event payload — missing fields or wrong types |
+| `500` | Internal error recording progress |
+
+---
+
+## Get dashboard
+
+Retrieve the authenticated user's learning dashboard with overall statistics.
+
+```bash
+GET /api/progress/dashboard
+```
+
+**Auth**: Student
+
+### Response
+
+```json
+{
+  "userName": "Ahmed Khan",
+  "totalChaptersVisited": 24,
+  "totalQuizzesAttempted": 18,
+  "averageQuizScore": 78.5,
+  "subjects": [
+    {
+      "boardSlug": "punjab",
+      "boardName": "Punjab Board",
+      "grade": "9",
+      "subjectSlug": "physics",
+      "subjectName": "Physics",
+      "chaptersVisited": 8,
+      "totalChapters": 10,
+      "progressPercent": 80,
+      "quizzesAttempted": 6,
+      "averageScore": 82.3
+    }
+  ],
+  "recentActivity": [
+    {
+      "eventType": "chapter_visit",
+      "chapterTitle": "Physical Quantities",
+      "subjectName": "Physics",
+      "occurredAt": "2026-03-28T14:00:00.000Z"
+    }
+  ]
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `500` | Internal error fetching dashboard |
+
+---
+
+## Get subject dashboard
+
+Retrieve detailed progress for a specific subject, including chapter-by-chapter breakdown.
+
+```bash
+GET /api/progress/dashboard/:boardSlug/:grade/:subjectSlug
+```
+
+**Auth**: Student
+
+### Path parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `boardSlug` | string | Board slug — lowercase alphanumeric with hyphens |
+| `grade` | `"9"` \| `"10"` | Grade |
+| `subjectSlug` | string | Subject slug — lowercase alphanumeric with hyphens |
+
+### Response
+
+```json
+{
+  "board": {
+    "slug": "punjab",
+    "name": "Punjab Board"
+  },
+  "grade": "9",
+  "subject": {
+    "slug": "physics",
+    "name": "Physics"
+  },
+  "chapters": [
+    {
+      "id": 1,
+      "chapterNumber": 1,
+      "title": "Physical Quantities and Measurement",
+      "visited": true,
+      "exercisesViewed": true,
+      "flashcardsCompleted": true,
+      "quizAttempted": true,
+      "quizBestScore": 80,
+      "quizAttemptsCount": 2
+    },
+    {
+      "id": 2,
+      "chapterNumber": 2,
+      "title": "Kinematics",
+      "visited": true,
+      "exercisesViewed": false,
+      "flashcardsCompleted": false,
+      "quizAttempted": false,
+      "quizBestScore": null,
+      "quizAttemptsCount": 0
+    }
+  ],
+  "overallProgress": 25,
+  "totalChapters": 10,
+  "chaptersStarted": 3
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid subject route parameters |
+| `404` | Subject not found |
+| `500` | Internal error fetching subject dashboard |

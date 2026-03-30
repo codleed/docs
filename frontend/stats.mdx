@@ -1,0 +1,371 @@
+---
+title: "Stats Page & Charts"
+description: "Student statistics dashboard with performance charts, consistency tracking, and goal monitoring"
+---
+
+## Overview
+
+The stats page provides detailed analytics on a student's learning performance. It includes KPI summaries, quiz performance trends, study volume charts, subject breakdowns, and consistency tracking. All data comes from the Progress API.
+
+## Page Routing
+
+| Route | Page | Description |
+|-------|------|-------------|
+| `/stats` | `app/(main)/stats/page.tsx` | Full stats dashboard |
+
+<Note>
+The stats page requires authentication. It fetches data from `GET /api/progress/dashboard` and `GET /api/progress/dashboard/:boardSlug/:grade/:subjectSlug` for subject-specific detail.
+</Note>
+
+---
+
+## Components
+
+### StatsHeroKpiStrip
+
+Top-level KPI cards showing the most important metrics at a glance.
+
+**Location:** `src/components/stats/stats-hero-kpi-strip.tsx`
+
+```tsx
+import { StatsHeroKpiStrip } from "@/components/stats/stats-hero-kpi-strip";
+
+<StatsHeroKpiStrip
+  totalChaptersVisited={24}
+  totalQuizzesAttempted={18}
+  averageQuizScore={78.5}
+  currentStreak={7}
+/>
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `totalChaptersVisited` | `number` | Total unique chapters visited |
+| `totalQuizzesAttempted` | `number` | Total quiz attempts |
+| `averageQuizScore` | `number` | Average quiz score percentage |
+| `currentStreak` | `number` | Current daily study streak |
+
+**Renders:** 4 KPI cards in a horizontal strip, each with an icon, value, and label.
+
+### StatsQuizPerformanceChart
+
+Line or bar chart showing quiz score trends over time.
+
+**Location:** `src/components/stats/stats-quiz-performance-chart.tsx`
+
+```tsx
+import { StatsQuizPerformanceChart } from "@/components/stats/stats-quiz-performance-chart";
+
+<StatsQuizPerformanceChart data={quizPerformanceData} />
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `data` | `QuizPerformancePoint[]` | Array of `{ date, score, subjectName }` |
+
+**Features:**
+- X-axis: date timeline
+- Y-axis: score percentage (0–100)
+- Color-coded by subject
+- Tooltip on hover showing exact score and subject
+- Responsive to container width
+
+### QuizAccuracyTrend
+
+Trend line showing quiz accuracy improvement over recent attempts.
+
+**Location:** `src/components/stats/quiz-accuracy-trend.tsx`
+
+```tsx
+import { QuizAccuracyTrend } from "@/components/stats/quiz-accuracy-trend";
+
+<QuizAccuracyTrend attempts={quizAttempts} />
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `attempts` | `QuizAttempt[]` | Recent quiz attempts with timestamps and scores |
+
+**Visualization:** Sparkline or small area chart showing accuracy percentage over the last 7/30 days.
+
+### StatsStudyVolumeChart
+
+Bar chart showing daily or weekly study activity volume.
+
+**Location:** `src/components/stats/stats-study-volume-chart.tsx`
+
+```tsx
+import { StatsStudyVolumeChart } from "@/components/stats/stats-study-volume-chart";
+
+<StatsStudyVolumeChart data={studyVolumeData} />
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `data` | `StudyVolumePoint[]` | Array of `{ date, chaptersVisited, exercisesViewed, flashcardsCompleted, quizzesAttempted }` |
+
+**Features:**
+- Stacked bar chart by activity type
+- Toggle between daily and weekly view
+- Color-coded activity types
+
+### StatsSubjectPerformanceGrid
+
+Grid of subject cards showing per-subject performance metrics.
+
+**Location:** `src/components/stats/stats-subject-performance-grid.tsx`
+
+```tsx
+import { StatsSubjectPerformanceGrid } from "@/components/stats/stats-subject-performance-grid";
+
+<StatsSubjectPerformanceGrid subjects={dashboardData.subjects} />
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `subjects` | `SubjectProgress[]` | Subject progress data from dashboard API |
+
+**Each Card Shows:**
+- Subject name and board/grade
+- Chapter progress bar (`chaptersVisited / totalChapters`)
+- Average quiz score badge
+- Color-coded performance indicator
+
+### SubjectProgressOverview
+
+Detailed breakdown for a single subject, showing chapter-by-chapter progress.
+
+**Location:** `src/components/stats/subject-progress-overview.tsx`
+
+```tsx
+import { SubjectProgressOverview } from "@/components/stats/subject-progress-overview";
+
+<SubjectProgressOverview
+  boardSlug="punjab"
+  grade="9"
+  subjectSlug="physics"
+/>
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `boardSlug` | `string` | Board slug for API call |
+| `grade` | `string` | Grade (`"9"` or `"10"`) |
+| `subjectSlug` | `string` | Subject slug for API call |
+
+**Data Flow:**
+1. Calls `GET /api/progress/dashboard/:boardSlug/:grade/:subjectSlug`
+2. Renders chapter list with completion indicators:
+   - Chapter visited (checkmark)
+   - Exercises viewed (checkmark)
+   - Flashcards completed (checkmark)
+   - Quiz attempted with best score
+
+### StatsConsistencyCalendar
+
+Calendar heatmap showing daily study consistency.
+
+**Location:** `src/components/stats/stats-consistency-calendar.tsx`
+
+```tsx
+import { StatsConsistencyCalendar } from "@/components/stats/stats-consistency-calendar";
+
+<StatsConsistencyCalendar activityData={dailyActivity} />
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `activityData` | `DailyActivity[]` | Array of `{ date, activityCount }` |
+
+**Features:**
+- GitHub-style contribution calendar
+- Color intensity based on activity count
+- Month labels on x-axis
+- Tooltip showing date and activity count
+- Current month highlighted
+
+### DailyStreakHeatmap
+
+Heatmap visualization of daily study streaks.
+
+**Location:** `src/components/stats/daily-streak-heatmap.tsx`
+
+```tsx
+import { DailyStreakHeatmap } from "@/components/stats/daily-streak-heatmap";
+
+<DailyStreakHeatmap streakData={streakDays} />
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `streakData` | `StreakDay[]` | Array of `{ date, hasActivity }` |
+
+**Visual:** Grid of days showing active (filled) vs. inactive (empty) with streak count badge.
+
+### StatsWeeklyGoals
+
+Weekly goal tracker showing progress toward study targets.
+
+**Location:** `src/components/stats/stats-weekly-goals.tsx`
+
+```tsx
+import { StatsWeeklyGoals } from "@/components/stats/stats-weekly-goals";
+
+<StatsWeeklyGoals goals={weeklyGoals} />
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `goals` | `WeeklyGoal[]` | Array of `{ target, current, label, unit }` |
+
+**Goal Types:**
+- Chapters studied (target: 5/week)
+- Quizzes attempted (target: 3/week)
+- Study days (target: 5/week)
+- Flashcards completed (target: 20/week)
+
+**Each Goal Shows:** Progress bar, current/target values, percentage, on-track indicator.
+
+### WeeklyTrend
+
+Weekly trend summary comparing this week's activity to previous weeks.
+
+**Location:** `src/components/stats/weekly-trend.tsx`
+
+```tsx
+import { WeeklyTrend } from "@/components/stats/weekly-trend";
+
+<WeeklyTrend weeklyData={lastFourWeeks} />
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `weeklyData` | `WeeklySummary[]` | Last 4 weeks of `{ weekStart, chaptersVisited, quizzesAttempted, avgScore }` |
+
+**Visualization:** Small multiples or grouped bar chart comparing week-over-week metrics.
+
+### StatsFocusAreas
+
+Highlights subjects or chapters where the student needs the most improvement.
+
+**Location:** `src/components/stats/stats-focus-areas.tsx`
+
+```tsx
+import { StatsFocusAreas } from "@/components/stats/stats-focus-areas";
+
+<StatsFocusAreas subjects={dashboardData.subjects} />
+```
+
+**Logic:**
+- Sorts subjects by lowest average quiz score
+- Highlights subjects with < 60% average
+- Suggests chapters with low completion rates
+- Renders as a prioritized action list
+
+### StatsGoals
+
+Long-term goal tracking beyond weekly targets.
+
+**Location:** `src/components/stats/stats-goals.tsx`
+
+```tsx
+import { StatsGoals } from "@/components/stats/stats-goals";
+
+<StatsGoals />
+```
+
+**Tracks:**
+- Total chapters to complete (out of all available)
+- Target average quiz score
+- Streak milestones (7-day, 30-day, 100-day)
+- XP milestones
+
+---
+
+## Component Hierarchy
+
+```
+stats/
+└── page.tsx
+    ├── StatsHeroKpiStrip (4 KPI cards)
+    ├── StatsStudyVolumeChart (activity bar chart)
+    ├── StatsQuizPerformanceChart (score trend)
+    ├── QuizAccuracyTrend (sparkline)
+    ├── StatsSubjectPerformanceGrid
+    │   └── Subject Card (per subject)
+    │       └── SubjectProgressOverview (chapter breakdown)
+    ├── StatsConsistencyCalendar (heatmap)
+    ├── DailyStreakHeatmap (streak grid)
+    ├── StatsWeeklyGoals (goal progress bars)
+    ├── WeeklyTrend (week-over-week comparison)
+    ├── StatsFocusAreas (improvement suggestions)
+    └── StatsGoals (long-term milestones)
+```
+
+## Data Flow
+
+<Accordion title="Dashboard Data">
+```
+GET /api/progress/dashboard
+  ↓
+{
+  userName, totalChaptersVisited, totalQuizzesAttempted,
+  averageQuizScore, subjects[], recentActivity[]
+}
+  ↓
+StatsHeroKpiStrip ← KPI values
+StatsSubjectPerformanceGrid ← subjects[]
+StatsFocusAreas ← subjects[] (sorted by score)
+```
+</Accordion>
+
+<Accordion title="Subject Detail">
+```
+User clicks a subject card
+  ↓
+GET /api/progress/dashboard/:boardSlug/:grade/:subjectSlug
+  ↓
+{
+  chapters[] (per-chapter visit/exercise/flashcard/quiz status),
+  overallProgress, totalChapters, chaptersStarted
+}
+  ↓
+SubjectProgressOverview ← chapter-by-chapter breakdown
+```
+</Accordion>
+
+<Accordion title="Activity & Consistency">
+```
+recentActivity[] from dashboard
+  ↓
+Aggregate by date → DailyActivity[]
+  ↓
+StatsConsistencyCalendar ← heatmap
+DailyStreakHeatmap ← streak grid
+
+Aggregate by week → WeeklySummary[]
+  ↓
+WeeklyTrend ← week-over-week comparison
+StatsWeeklyGoals ← goal progress
+```
+</Accordion>

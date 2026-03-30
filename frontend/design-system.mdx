@@ -1,0 +1,369 @@
+---
+title: "Design System"
+description: "UI primitives, CVA component patterns, design tokens, and Tailwind conventions"
+---
+
+## Overview
+
+LearningoPK's design system provides a consistent set of UI primitives built with **CVA (Class Variance Authority)** and **Tailwind CSS 4**. All components follow a 4px spacing grid, support dark theme, and are exported from `@/components/ui`.
+
+```tsx
+import { Button, Card, Badge, Input, Select, Checkbox } from "@/components/ui";
+```
+
+## Design Tokens
+
+### Colors
+
+<Tabs>
+  <Tab title="Light Theme">
+    | Token | Value | Usage |
+    |-------|-------|-------|
+    | `--primary` | `#7ac943` | Main brand green — buttons, links, focus rings |
+    | `--primary-hover` | `#68b036` | Hover state for primary elements |
+    | `--primary-foreground` | `#ffffff` | Text on primary backgrounds |
+    | `--background` | `#f8fafc` | Page background |
+    | `--foreground` | `#0f172a` | Primary text color |
+    | `--card` | `#ffffff` | Card and panel backgrounds |
+    | `--secondary` | `#f1f5f9` | Secondary backgrounds |
+    | `--muted` | `#e2e8f0` | Muted backgrounds |
+    | `--muted-foreground` | `#64748b` | Muted text |
+    | `--border` | `#e2e8f0` | Border color |
+    | `--destructive` | `#ef4444` | Error/danger states |
+    | `--success` | `#10b981` | Success states |
+    | `--warning` | `#f59e0b` | Warning states |
+  </Tab>
+  <Tab title="Dark Theme">
+    | Token | Value |
+    |-------|-------|
+    | `--primary-hover` | `#8fd654` |
+    | `--background` | `#0f172a` |
+    | `--foreground` | `#f8fafc` |
+    | `--card` | `#1e293b` |
+    | `--secondary` | `#1e293b` |
+    | `--muted` | `#334155` |
+    | `--muted-foreground` | `#94a3b8` |
+    | `--border` | `#334155` |
+    | `--input` | `#475569` |
+  </Tab>
+</Tabs>
+
+### Pastel Accents
+
+Used for badges and decorative elements:
+
+| Token | Value |
+|-------|-------|
+| `--pastel-dustyRose` | `rgba(212, 165, 165, 0.3)` |
+| `--pastel-sage` | `rgba(165, 196, 165, 0.3)` |
+| `--pastel-slateBlue` | `rgba(165, 180, 196, 0.3)` |
+| `--pastel-warmSand` | `rgba(212, 196, 165, 0.3)` |
+| `--pastel-lavender` | `rgba(196, 165, 212, 0.3)` |
+| `--pastel-peach` | `rgba(212, 184, 165, 0.3)` |
+
+### Typography
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--font-heading` | `'DM Serif Display', Georgia, serif` | Page titles, card headings |
+| `--font-body` | `'Source Serif 4', Georgia, serif` | Body text, paragraphs |
+| `--font-mono` | `'JetBrains Mono', monospace` | Code blocks, technical content |
+
+### Spacing
+
+4px base grid: `--space-1` (4px) through `--space-16` (64px).
+
+---
+
+## Components
+
+### Button
+
+Primary interactive element with variant and size options.
+
+**Location:** `src/components/ui/button.tsx`
+
+```tsx
+import { Button } from "@/components/ui";
+
+<Button variant="primary" size="md">Save</Button>
+<Button variant="secondary" size="sm">Cancel</Button>
+<Button variant="ghost">Settings</Button>
+<Button variant="danger" loading>Delete</Button>
+<Button variant="primary" disabled>Not Available</Button>
+```
+
+**Variants:**
+
+| Variant | Use Case | Style |
+|---------|----------|-------|
+| `primary` | Main actions (Submit, Start, Send) | Solid green background |
+| `secondary` | Alternative actions (Cancel, Back) | Light background, border |
+| `ghost` | Tertiary actions (Settings, Filter) | Transparent, text only |
+| `danger` | Destructive actions (Delete, Remove) | Red background |
+
+**Sizes:**
+
+| Size | Height | Padding | Use Case |
+|------|--------|---------|----------|
+| `sm` | `h-8` | `px-3` | Compact UI, inline actions |
+| `md` | `h-10` | `px-4` | Default — forms, cards |
+| `lg` | `h-12` | `px-6` | Prominent CTAs |
+
+**States:** `default`, `hover`, `focus` (ring), `active` (scale 0.98), `disabled` (opacity 50), `loading` (spinner + "Loading..." text)
+
+### Badge
+
+Inline label for status, categories, and metadata.
+
+**Location:** `src/components/ui/badge.tsx`
+
+```tsx
+import { Badge } from "@/components/ui";
+
+<Badge variant="success">Active</Badge>
+<Badge variant="warning">Pending</Badge>
+<Badge variant="error">Failed</Badge>
+<Badge variant="info">New</Badge>
+<Badge variant="sage">Custom</Badge>
+```
+
+**Variants:**
+
+| Variant | Color |
+|---------|-------|
+| `neutral` | Gray |
+| `info` | Blue |
+| `success` | Green |
+| `warning` | Amber |
+| `error` | Red |
+| `dustyRose` | Pastel rose |
+| `sage` | Pastel green |
+| `slateBlue` | Pastel blue |
+| `warmSand` | Pastel sand |
+| `lavender` | Pastel purple |
+| `peach` | Pastel orange |
+
+### Card
+
+Container component with multiple layout sub-components.
+
+**Location:** `src/components/ui/card.tsx`
+
+```tsx
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, CardActions } from "@/components/ui";
+
+<Card>
+  <CardHeader>
+    <CardTitle>Chapter Progress</CardTitle>
+    <CardDescription>Physics — Punjab Board</CardDescription>
+  </CardHeader>
+  <CardContent>
+    <p>8 of 10 chapters completed</p>
+  </CardContent>
+  <CardFooter>
+    <CardActions>
+      <Button size="sm">Continue</Button>
+      <Button size="sm" variant="ghost">Details</Button>
+    </CardActions>
+  </CardFooter>
+</Card>
+```
+
+**Variants:**
+
+| Variant | Style |
+|---------|-------|
+| `default` | Border + subtle shadow |
+| `elevated` | Stronger shadow + hover lift |
+| `outlined` | Double border, no background |
+| `ghost` | No border, no shadow, transparent |
+
+**Sub-components:**
+
+| Component | Purpose |
+|-----------|---------|
+| `CardHeader` | Top section with bottom border |
+| `CardTitle` | Heading text (uses `--font-heading`) |
+| `CardDescription` | Supporting text below title |
+| `CardContent` | Main content area |
+| `CardFooter` | Bottom section with top border |
+| `CardActions` | Button group within footer |
+
+### Input
+
+Text input with validation states.
+
+**Location:** `src/components/ui/input.tsx`
+
+```tsx
+import { Input } from "@/components/ui";
+
+<Input placeholder="Enter email..." />
+<Input error placeholder="Invalid email..." />
+<Input disabled placeholder="Disabled..." />
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `error` | `boolean` | Shows red border for validation errors |
+| `disabled` | `boolean` | Reduces opacity, prevents interaction |
+| `placeholder` | `string` | Placeholder text |
+| All HTML input attributes | — | `type`, `value`, `onChange`, etc. |
+
+**States:** `default` (border `--input`), `focus` (border `--primary` + ring), `error` (border `--destructive`), `disabled` (opacity 50)
+
+### Select
+
+Dropdown select with consistent styling.
+
+**Location:** `src/components/ui/select.tsx`
+
+```tsx
+import { Select } from "@/components/ui";
+
+<Select placeholder="Choose board...">
+  <SelectItem value="punjab">Punjab Board</SelectItem>
+  <SelectItem value="federal">Federal Board</SelectItem>
+  <SelectItem value="sindh">Sindh Board</SelectItem>
+</Select>
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `placeholder` | `string` | Placeholder text when no value selected |
+| `error` | `boolean` | Shows red border for validation errors |
+| `disabled` | `boolean` | Prevents interaction |
+| `value` | `string` | Controlled value |
+| `onValueChange` | `(value: string) => void` | Change handler |
+
+### Checkbox
+
+Styled checkbox input.
+
+**Location:** `src/components/ui/checkbox.tsx`
+
+```tsx
+import { Checkbox } from "@/components/ui";
+
+<Checkbox label="Remember me" />
+<Checkbox label="Accept terms" checked />
+<Checkbox label="Disabled option" disabled />
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `label` | `string` | Label text next to checkbox |
+| `checked` | `boolean` | Controlled checked state |
+| `disabled` | `boolean` | Prevents interaction |
+| `onCheckedChange` | `(checked: boolean) => void` | Change handler |
+
+### ConfirmDialog
+
+Modal confirmation dialog for destructive or important actions.
+
+**Location:** `src/components/ui/confirm-dialog.tsx`
+
+```tsx
+import { ConfirmDialog } from "@/components/ui";
+
+<ConfirmDialog
+  open={showDialog}
+  onOpenChange={setShowDialog}
+  title="Delete Chapter"
+  description="This action cannot be undone. All exercises and flashcards in this chapter will be permanently deleted."
+  confirmLabel="Delete"
+  confirmVariant="danger"
+  onConfirm={handleDelete}
+/>
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `open` | `boolean` | Controls dialog visibility |
+| `onOpenChange` | `(open: boolean) => void` | Open state change handler |
+| `title` | `string` | Dialog heading |
+| `description` | `string` | Warning/information text |
+| `confirmLabel` | `string` | Confirm button text (default: "Confirm") |
+| `confirmVariant` | `ButtonVariant` | Confirm button variant (default: "primary") |
+| `onConfirm` | `() => void` | Callback on confirm click |
+| `onCancel` | `() => void` | Callback on cancel click |
+
+---
+
+## Conventions
+
+<Accordion title="CVA Pattern">
+All UI components use **Class Variance Authority** for variant management:
+
+```tsx
+import { cva, type VariantProps } from "class-variance-authority";
+
+const buttonVariants = cva(
+  "base-classes inline-flex items-center justify-center rounded-md",
+  {
+    variants: {
+      variant: {
+        primary: "bg-[var(--primary)] text-[var(--primary-foreground)]",
+        secondary: "bg-[var(--secondary)] text-[var(--secondary-foreground)]",
+        ghost: "bg-transparent",
+        danger: "bg-[var(--destructive)] text-[var(--destructive-foreground)]",
+      },
+      size: {
+        sm: "h-8 px-3 text-sm",
+        md: "h-10 px-4 text-base",
+        lg: "h-12 px-6 text-lg",
+      },
+    },
+    defaultVariants: {
+      variant: "primary",
+      size: "md",
+    },
+  }
+);
+```
+
+This approach ensures tree-shaking, type-safe variants, and consistent styling.
+</Accordion>
+
+<Accordion title="Dark Theme Support">
+All components use CSS custom properties (`var(--token)`) rather than hardcoded colors. The theme toggle switches a `dark` class on the root element, which redefines all tokens.
+
+**Implementation:**
+- Tailwind `darkMode: "class"` configuration
+- Theme toggle component in app shell
+- All color references use `var(--*)` tokens
+</Accordion>
+
+<Accordion title="Accessibility">
+- All interactive elements have visible focus rings (`ring-2 ring-[var(--ring)]`)
+- Buttons include `disabled` state with `cursor-not-allowed`
+- Form inputs have associated labels
+- Color contrast meets WCAG AA standards
+- Confirm dialogs trap focus and support Escape key dismissal
+- Checkbox labels are clickable (linked via `htmlFor`)
+</Accordion>
+
+<Accordion title="Import Convention">
+Always import from the barrel export:
+
+```tsx
+// Correct
+import { Button, Card, Badge, Input } from "@/components/ui";
+
+// Incorrect — do not use direct file imports
+import { Button } from "@/components/ui/button";
+```
+</Accordion>
+
+<Tip>
+The `src/components/ui/index.ts` barrel file exports all UI components. When adding a new component, add it to this index file to maintain the single import pattern.
+</Tip>

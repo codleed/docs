@@ -1,0 +1,60 @@
+---
+title: "Environment Variables"
+description: "Configuration reference for all environment variables"
+---
+
+## Backend (`backend/.env`)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | Yes | PostgreSQL connection string (via PgBouncer) |
+| `REDIS_URL` | Yes | Redis connection string |
+| `BETTER_AUTH_SECRET` | Yes | Random 32-character string for session encryption |
+| `BETTER_AUTH_URL` | Yes | Backend URL for auth callbacks |
+| `FRONTEND_ORIGIN` | Yes | Frontend URL for CORS |
+| `MISTRAL_API_KEY` | Yes | Mistral AI API key ([console.mistral.ai](https://console.mistral.ai)) |
+| `MINIO_ENDPOINT` | Yes | MinIO server hostname |
+| `MINIO_PORT` | Yes | MinIO server port |
+| `MINIO_USE_SSL` | No | Whether to use HTTPS (default: false) |
+| `MINIO_ACCESS_KEY` | Yes | MinIO access key |
+| `MINIO_SECRET_KEY` | Yes | MinIO secret key |
+| `MINIO_BUCKET` | Yes | MinIO bucket name |
+| `MINIO_PUBLIC_URL` | Yes | Public URL for accessing MinIO objects |
+| `PORT` | No | Server port (default: 3001) |
+
+### Example
+
+```bash
+DATABASE_URL=postgresql://postgres:password@localhost:6432/learningo
+REDIS_URL=redis://localhost:6379
+BETTER_AUTH_SECRET=yOocWXqo7cx5Zde53GtGcCn4Q6qoNszeoQ8aLGLze1k=
+BETTER_AUTH_URL=http://localhost:3001
+FRONTEND_ORIGIN=http://localhost:3000
+MISTRAL_API_KEY=get-free-key-from-console.mistral.ai
+MINIO_ENDPOINT=localhost
+MINIO_PORT=9000
+MINIO_USE_SSL=false
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin123
+MINIO_BUCKET=learningo-media
+MINIO_PUBLIC_URL=http://localhost:9000
+PORT=3001
+```
+
+## Frontend (`frontend/.env.local`)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_APP_URL` | Yes | Frontend URL |
+| `NEXT_PUBLIC_BACKEND_URL` | Yes | Backend API URL |
+
+### Example
+
+```bash
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
+```
+
+<Warning>
+  Never commit `.env` or `.env.local` files to version control. Use `.env.example` files as templates.
+</Warning>

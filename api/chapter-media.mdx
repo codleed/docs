@@ -1,0 +1,123 @@
+---
+title: Chapter Media API
+description: Upload summary media assets for chapters (admin only).
+---
+
+## Overview
+
+The Chapter Media API allows admins to upload images associated with chapter summaries. Media files are stored in MinIO and linked to the chapter through the `chapter_summary_media` table. The response includes a Markdown image tag ready to embed in the chapter summary.
+
+---
+
+## Upload chapter summary media
+
+Upload an image for a chapter summary. Requires admin privileges.
+
+```bash
+POST /api/admin/content/chapters/:chapterId/summary-media
+```
+
+**Auth**: Admin (requires valid session with `role: "admin"`)
+
+### Path parameters
+
+<ResponseField name="chapterId" type="number" required>
+  The unique identifier of the chapter to attach media to. Must be a positive integer.
+</ResponseField>
+
+### Request
+
+Send as **multipart/form-data** with a single file field.
+
+<ResponseField name="media" type="file" required>
+  The image file to upload. Field name must be `media`.
+
+  **Supported formats**: JPEG, PNG, WEBP, GIF
+
+  **Maximum size**: 10 MB
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:3001/api/admin/content/chapters/42/summary-media \
+  -H "Cookie: better-auth.session_token=..." \
+  -F "media=@/path/to/diagram.png"
+```
+
+</CodeGroup>
+
+### Response
+
+**Status**: `201 Created`
+
+```json
+{
+  "asset": {
+    "id": 15,
+    "chapterId": 42,
+    "objectUrl": "https://storage.example.com/learningopk/chapters/42/user-abc123/diagram.png",
+    "mimeType": "image/png",
+    "fileSize": 245760,
+    "createdAt": "2026-03-30T12:00:00.000Z"
+  },
+  "markdown": "![Chapter summary media](https://storage.example.com/learningopk/chapters/42/user-abc123/diagram.png)"
+}
+```
+
+<ResponseField name="asset" type="object" required>
+  The persisted media asset record.
+
+  <Expandable title="asset object">
+    <ResponseField name="id" type="number" required>
+      Unique media asset identifier.
+    </ResponseField>
+
+    <ResponseField name="chapterId" type="number" required>
+      ID of the chapter this media belongs to.
+    </ResponseField>
+
+    <ResponseField name="objectUrl" type="string" required>
+      Public URL of the uploaded media file.
+    </ResponseField>
+
+    <ResponseField name="mimeType" type="string" required>
+      MIME type of the uploaded file (e.g., `"image/png"`).
+    </ResponseField>
+
+    <ResponseField name="fileSize" type="number" required>
+      Size of the file in bytes.
+    </ResponseField>
+
+    <ResponseField name="createdAt" type="string" required>
+      ISO 8601 timestamp of when the media was uploaded.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="markdown" type="string" required>
+  A pre-formatted Markdown image tag that can be directly inserted into the chapter summary editor.
+</ResponseField>
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid `chapterId` — must be a positive integer |
+| `400` | Missing `media` file in the multipart payload |
+| `400` | Unsupported image type — only JPEG, PNG, WEBP, and GIF are allowed |
+| `401` | No valid session — user is not authenticated |
+| `403` | User does not have admin role |
+| `404` | Chapter with the given ID does not exist |
+| `413` | File exceeds the 10 MB size limit |
+| `500` | Server error — failed to upload to MinIO or persist the media record |
+
+<Warning>
+If the upload succeeds but the database insert fails, the newly uploaded object is automatically deleted to prevent orphaned files in object storage.
+</Warning>
+
+<Note>
+Each upload creates a new media record. Multiple images can be attached to the same chapter. The `markdown` field in the response makes it easy to embed images into the chapter summary content.
+</Note>

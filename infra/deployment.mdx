@@ -1,0 +1,58 @@
+---
+title: "Deployment"
+description: "Deployment guide for production environments"
+---
+
+## Overview
+
+LearningoPK is designed for local development and investor demonstration. For production deployment, the Docker Compose setup provides the foundation.
+
+## Production Checklist
+
+### Environment
+
+- [ ] Generate a strong `BETTER_AUTH_SECRET` (64+ characters)
+- [ ] Use a production PostgreSQL instance or managed database
+- [ ] Set `BETTER_AUTH_URL` to the production domain
+- [ ] Set `FRONTEND_ORIGIN` to the production frontend URL
+- [ ] Configure `MISTRAL_API_KEY` with a production API key
+
+### Security
+
+- [ ] Change default PostgreSQL password
+- [ ] Change default MinIO credentials
+- [ ] Enable SSL/TLS for all connections
+- [ ] Configure Nginx with HTTPS certificates
+- [ ] Set secure cookie options in Better Auth
+
+### Database
+
+- [ ] Run `pnpm db:migrate` to apply all migrations
+- [ ] Set up automated backups
+- [ ] Configure connection pooling (PgBouncer) for production load
+
+## Docker Compose for Production
+
+The existing `docker-compose.yml` can be adapted for production:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+## Build Commands
+
+```bash
+# Build frontend
+pnpm --filter frontend build
+
+# Build backend
+pnpm --filter backend build
+
+# Start production servers
+pnpm --filter frontend start
+pnpm --filter backend start
+```
+
+## CI/CD
+
+The project includes a GitHub Actions workflow at `.github/workflows/ci.yml` that runs linting and TypeScript checks on every push.

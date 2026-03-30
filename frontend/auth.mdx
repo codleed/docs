@@ -1,0 +1,267 @@
+---
+title: "Auth Pages & Components"
+description: "Login, registration, and authentication guard components for the LearningoPK frontend"
+---
+
+## Overview
+
+The authentication layer handles student login, registration, and route protection. Auth pages use a split-layout design with a form on the left and a decorative illustration on the right. All auth routes are grouped under the `(auth)` route group.
+
+## Page Routing
+
+| Route | Page | Description |
+|-------|------|-------------|
+| `/login` | `app/(auth)/login/page.tsx` | Email/password login form |
+| `/register` | `app/(auth)/register/page.tsx` | Student registration form |
+
+<Note>
+Auth pages are wrapped in the `(auth)` route group, which applies the `AuthLayout` without the main app shell (sidebar, navigation). Authenticated users visiting `/login` or `/register` are redirected to the dashboard.
+</Note>
+
+---
+
+## Layout Components
+
+### AuthLayout
+
+Wraps all authentication pages with a two-panel layout — form on the left, hero illustration on the right.
+
+**Location:** `src/components/auth/auth-layout.tsx`
+
+```tsx
+import { AuthLayout } from "@/components/auth/auth-layout";
+
+export default function LoginLayout({ children }) {
+  return <AuthLayout>{children}</AuthLayout>;
+}
+```
+
+**Structure:**
+- Left panel — form content (`children`)
+- Right panel — `HeroIllustration` (hidden on mobile)
+
+### AuthLayoutWrapper
+
+Higher-level wrapper that checks session state and redirects authenticated users away from auth pages.
+
+**Location:** `src/components/foundation/auth-layout-wrapper.tsx`
+
+```tsx
+import { AuthLayoutWrapper } from "@/components/foundation/auth-layout-wrapper";
+
+// Wraps the (auth) route group layout
+<AuthLayoutWrapper>
+  {children}
+</AuthLayoutWrapper>
+```
+
+**Behavior:**
+- Calls `GET /api/auth/get-session` on mount
+- Redirects to `/dashboard` if session exists
+- Renders children if unauthenticated
+
+### HeroIllustration
+
+Decorative illustration displayed on the right panel of auth pages.
+
+**Location:** `src/components/auth/hero-illustration.tsx`
+
+---
+
+## Form Components
+
+### LoginForm
+
+Email/password login form with validation and error handling.
+
+**Location:** `src/components/auth/login-form.tsx`
+
+```tsx
+import { LoginForm } from "@/components/auth/login-form";
+
+<LoginForm />
+```
+
+**Features:**
+- Email and password fields with client-side validation
+- "Remember me" checkbox (extends session duration)
+- Error display for invalid credentials (`401`)
+- Loading state during submission
+- Link to `/register` for new users
+- Link to forgot password (currently not functional — see warning below)
+
+<Warning>
+Password reset is **not currently enabled**. The forgot password link is present in the UI but the backend endpoints are only partially implemented. Users who forget passwords must contact support.
+</Warning>
+
+**Data Flow:**
+1. User submits email + password
+2. `POST /api/auth/sign-in/email` is called
+3. On success, session cookie is set and user is redirected to `/dashboard`
+4. On `401`, inline error message is displayed
+
+### RegisterForm
+
+Student registration form collecting name, email, password, class, and board.
+
+**Location:** `src/components/auth/register-form.tsx`
+
+```tsx
+import { RegisterForm } from "@/components/auth/register-form";
+
+<RegisterForm />
+```
+
+**Fields:**
+
+| Field | Type | Validation |
+|-------|------|------------|
+| `name` | string | Required, 2–50 characters |
+| `email` | string | Required, valid email format |
+| `password` | string | Required, minimum 8 characters |
+| `class` | select | Required — `"9"` or `"10"` |
+| `board` | select | Required — `"punjab"`, `"federal"`, or `"sindh"` |
+
+**Data Flow:**
+1. User fills in all fields
+2. `POST /api/auth/sign-up/email` is called
+3. On success, session cookie is set and user is redirected to `/dashboard`
+4. On `409`, error message: "Email already registered"
+
+### PasswordInput
+
+Password field with visibility toggle (show/hide).
+
+**Location:** `src/components/auth/password-input.tsx`
+
+```tsx
+import { PasswordInput } from "@/components/auth/password-input";
+
+<PasswordInput placeholder="Enter password" />
+```
+
+**Props:**
+- Inherits all `<Input>` props from the design system
+- Adds eye/eye-off toggle button
+- `error` prop for validation state
+
+### FormField
+
+Generic labeled form field wrapper with error display.
+
+**Location:** `src/components/auth/form-field.tsx`
+
+```tsx
+import { FormField } from "@/components/auth/form-field";
+
+<FormField label="Email" error={errors.email?.message}>
+  <Input {...register("email")} />
+</FormField>
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `label` | `string` | Field label text |
+| `error` | `string?` | Error message to display below the field |
+| `required` | `boolean?` | Shows required indicator |
+| `children` | `ReactNode` | The input element |
+
+### BentoAuthField
+
+Stylized form field with a bento-grid visual treatment, used on auth pages.
+
+**Location:** `src/components/auth/bento_auth-field.tsx`
+
+---
+
+## Auth Guard Components
+
+### AuthGuardMessage
+
+Displays an access-denied message when unauthenticated users try to access protected routes.
+
+**Location:** `src/components/auth/auth-guard-message.tsx`
+
+```tsx
+import { AuthGuardMessage } from "@/components/auth/auth-guard-message";
+
+// Used in protected page components
+if (!session) {
+  return <AuthGuardMessage />;
+}
+```
+
+**Renders:**
+- Lock icon
+- "Please log in to access this page" message
+- Button linking to `/login`
+
+### LogoutButton
+
+Triggers session destruction and redirects to the login page.
+
+**Location:** `src/components/auth/logout-button.tsx`
+
+```tsx
+import { LogoutButton } from "@/components/auth/logout-button";
+
+<LogoutButton />
+```
+
+**Data Flow:**
+1. User clicks logout button
+2. `POST /api/auth/sign-out` is called
+3. Session cookie is cleared
+4. User is redirected to `/login`
+
+---
+
+## Component Hierarchy
+
+```
+(auth)/
+├── layout.tsx
+│   └── AuthLayoutWrapper
+│       └── AuthLayout
+│           ├── [children] (login or register form)
+│           └── HeroIllustration
+├── login/
+│   └── page.tsx
+│       └── LoginForm
+│           ├── FormField + Input (email)
+│           ├── FormField + PasswordInput (password)
+│           └── Button (submit)
+└── register/
+    └── page.tsx
+        └── RegisterForm
+            ├── FormField + Input (name)
+            ├── FormField + Input (email)
+            ├── FormField + PasswordInput (password)
+            ├── FormField + Select (class)
+            ├── FormField + Select (board)
+            └── Button (submit)
+```
+
+## Data Flow
+
+<Accordion title="Session Management">
+The frontend uses **Better Auth** for session management. Sessions are stored as secure HTTP-only cookies.
+
+- **Login flow:** `POST /api/auth/sign-in/email` → sets cookie → client reads session via `GET /api/auth/get-session`
+- **Registration flow:** `POST /api/auth/sign-up/email` → sets cookie → auto-login
+- **Logout flow:** `POST /api/auth/sign-out` → clears cookie → redirect to `/login`
+- **Session check:** `GET /api/auth/get-session` → returns user object or `null`
+
+No manual JWT handling is required — Better Auth manages all token lifecycle.
+</Accordion>
+
+<Accordion title="Form Validation">
+Forms use **React Hook Form** with **Zod** schemas for validation:
+
+- Client-side validation runs on blur and on submit
+- Server-side errors (400, 401, 409) are caught and displayed inline
+- Password field enforces minimum 8 characters
+- Email field validates format with Zod's `z.string().email()`
+</Accordion>

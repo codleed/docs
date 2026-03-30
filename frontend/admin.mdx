@@ -1,0 +1,39 @@
+---
+title: "Admin Panel"
+description: "Content management and platform administration interface"
+---
+
+## Overview
+
+The admin panel provides tools for managing curriculum content, users, and platform analytics. Accessible only to users with the `admin` role.
+
+## Sections
+
+### Content Management
+
+- **Chapters** — Create, edit, publish/unpublish chapters
+- **Exercises** — Add exercises with solutions to chapters
+- **Quizzes** — Build quizzes with MCQ questions
+- **Flashcards** — Create flashcard sets for chapters
+- **Mock Exams** — Set up board-pattern mock exams
+
+### User Management
+
+- View all registered users
+- Filter by role (student / admin)
+- Update user roles
+
+### Analytics Dashboard
+
+- Total and active user counts
+- Subject-wise engagement metrics
+- Quiz performance distributions
+- Chapter completion rates
+
+## Access Control
+
+The admin panel route is protected by role-based access control. Non-admin users are redirected to the student dashboard.
+
+```
+/admin/* → Requires role: admin
+```

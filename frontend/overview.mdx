@@ -1,0 +1,67 @@
+---
+title: "Frontend Overview"
+description: "Next.js 16 App Router frontend architecture and structure"
+---
+
+## Overview
+
+The LearningoPK frontend is built with **Next.js 16** using the App Router. It uses Server Components for data fetching and Client Components for interactive features.
+
+## Technology Stack
+
+- **Next.js 16** — App Router with RSC
+- **Tailwind CSS 4** — Utility-first styling
+- **HeroUI** — Accessible component library
+- **Vercel AI SDK** — `useChat` for AI streaming
+- **React Hook Form + Zod** — Form handling and validation
+
+## Directory Structure
+
+```
+frontend/
+├── app/                    # App Router pages and layouts
+│   ├── (auth)/             # Auth pages (login, register)
+│   ├── (main)/             # Main app pages
+│   │   ├── dashboard/      # Student dashboard
+│   │   ├── learn/          # Learning pages
+│   │   ├── quiz/           # Quiz pages
+│   │   ├── ai-tutor/       # AI chat interface
+│   │   └── forum/          # Community forum
+│   ├── (admin)/            # Admin panel
+│   ├── layout.tsx          # Root layout
+│   └── page.tsx            # Landing page
+├── src/
+│   ├── components/
+│   │   └── ui/             # Reusable UI components (Button, Card, Badge, Input)
+│   ├── hooks/              # Custom React hooks
+│   ├── lib/                # Utility functions and API client
+│   └── providers/          # Context providers
+├── tests/e2e/              # Playwright E2E tests
+└── public/                 # Static assets
+```
+
+## UI Components
+
+Reusable components are in `src/components/ui/` and built with **CVA** (Class Variance Authority). They follow a 4px spacing grid and support dark theme.
+
+```typescript
+import { Button, Card, Badge } from "@/components/ui";
+```
+
+## API Communication
+
+The frontend communicates with the Express backend via `/api/*` endpoints. The Next.js development server proxies API requests to the backend on port 3001.
+
+## Pages
+
+<Columns cols={2}>
+  <Card title="Dashboard" icon="layout-dashboard" href="/frontend/dashboard">
+    Student dashboard with progress overview and quick access.
+  </Card>
+  <Card title="Learn" icon="book-open" href="/frontend/learn">
+    Chapter browsing, exercise viewing, and flashcard study.
+  </Card>
+  <Card title="Admin" icon="shield" href="/frontend/admin">
+    Content and user management panel.
+  </Card>
+</Columns>

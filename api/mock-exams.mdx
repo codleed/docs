@@ -1,0 +1,238 @@
+---
+title: Mock Exams API
+description: Board-pattern mock exams with filtering, question retrieval, attempt tracking, and solution review.
+---
+
+## Overview
+
+Mock exams simulate real board exam conditions with timed MCQ papers. Each mock exam is linked to a board, grade, and subject, and backed by a quiz record. Solutions are only available after completing an attempt.
+
+---
+
+## List mock exams
+
+Retrieve mock exams with optional filters.
+
+```bash
+GET /api/mock-exams
+```
+
+**Auth**: None
+
+### Query parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `boardId` | number | Filter by board ID |
+| `grade` | `"9"` \| `"10"` | Filter by grade |
+| `subjectId` | number | Filter by subject ID |
+| `year` | number | Filter by exam year (2015–2024) |
+
+### Response
+
+```json
+{
+  "mockExams": [
+    {
+      "id": 1,
+      "title": "Physics 2024 Board Exam",
+      "year": 2024,
+      "durationMinutes": 60,
+      "totalMarks": 50,
+      "boardId": 1,
+      "boardName": "Punjab Board",
+      "boardSlug": "punjab",
+      "grade": "9",
+      "subjectId": 1,
+      "subjectName": "Physics",
+      "subjectSlug": "physics",
+      "quizId": 10
+    }
+  ]
+}
+```
+
+Results are ordered by year descending.
+
+---
+
+## Get mock exam
+
+Retrieve a single mock exam with quiz metadata.
+
+```bash
+GET /api/mock-exams/:id
+```
+
+**Auth**: None
+
+### Path parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | number | Mock exam ID |
+
+### Response
+
+```json
+{
+  "mockExam": {
+    "id": 1,
+    "title": "Physics 2024 Board Exam",
+    "year": 2024,
+    "durationMinutes": 60,
+    "totalMarks": 50,
+    "boardId": 1,
+    "boardName": "Punjab Board",
+    "boardSlug": "punjab",
+    "grade": "9",
+    "subjectId": 1,
+    "subjectName": "Physics",
+    "subjectSlug": "physics",
+    "quizId": 10,
+    "quizTitle": "Physics 2024 Board Exam",
+    "quizType": "mock_exam",
+    "quizDurationMinutes": 60
+  }
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid mock exam ID |
+| `404` | Mock exam not found |
+
+---
+
+## Get filter options
+
+Retrieve distinct available values for filtering mock exams.
+
+```bash
+GET /api/mock-exams/filters/options
+```
+
+**Auth**: None
+
+### Response
+
+```json
+{
+  "filters": {
+    "boards": [
+      { "id": 1, "name": "Punjab Board", "slug": "punjab" },
+      { "id": 2, "name": "Federal Board", "slug": "federal" }
+    ],
+    "grades": ["9", "10"],
+    "subjects": [
+      { "id": 1, "name": "Physics", "slug": "physics" },
+      { "id": 2, "name": "Chemistry", "slug": "chemistry" }
+    ],
+    "years": [2024, 2023, 2022, 2021]
+  }
+}
+```
+
+---
+
+## Get user attempts
+
+Retrieve the authenticated user's attempts for a specific mock exam.
+
+```bash
+GET /api/mock-exams/:id/attempts
+```
+
+**Auth**: Student
+
+### Path parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | number | Mock exam ID |
+
+### Response
+
+```json
+{
+  "attempts": [
+    {
+      "id": 1,
+      "score": 42,
+      "totalMarks": 50,
+      "completedAt": "2026-03-25T14:30:00.000Z"
+    },
+    {
+      "id": 2,
+      "score": 38,
+      "totalMarks": 50,
+      "completedAt": "2026-03-20T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+Attempts are ordered by `completedAt` descending.
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid mock exam ID |
+| `404` | Mock exam not found |
+
+---
+
+## Get quiz questions with solutions
+
+Retrieve all questions for a mock exam including correct answers and explanations. Only available after completing at least one attempt.
+
+```bash
+GET /api/mock-exams/:id/questions
+```
+
+**Auth**: Student
+
+### Path parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | number | Mock exam ID |
+
+### Response
+
+```json
+{
+  "questions": [
+    {
+      "id": 1,
+      "quizId": 10,
+      "chapterId": 5,
+      "question": "Which of the following is a vector quantity?",
+      "optionA": "Mass",
+      "optionB": "Speed",
+      "optionC": "Velocity",
+      "optionD": "Time",
+      "correctOption": "c",
+      "explanation": "Velocity has both magnitude and direction, making it a vector.",
+      "marks": 1,
+      "chapterTitle": "Physical Quantities",
+      "chapterNumber": 1
+    }
+  ]
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid mock exam ID |
+| `403` | Solutions only available after completing the exam (`code: "EXAM_NOT_COMPLETED"`) |
+| `404` | Mock exam not found |
+
+<Warning>
+You must complete at least one attempt before solutions become available. This prevents cheating during active exams.
+</Warning>

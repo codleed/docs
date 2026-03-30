@@ -1,0 +1,72 @@
+---
+title: Profile API
+description: Upload and update user profile images stored in MinIO object storage.
+---
+
+## Overview
+
+The Profile API handles profile image uploads. Images are stored in MinIO (S3-compatible object storage) and the user record is updated with the public URL. Previous profile images are automatically cleaned up when replaced.
+
+---
+
+## Upload profile image
+
+Upload a new profile image for the authenticated user. Replaces any existing image.
+
+```bash
+PUT /api/users/me/profile-image
+```
+
+**Auth**: Student (requires valid session)
+
+### Request
+
+Send as **multipart/form-data** with a single file field.
+
+<ResponseField name="image" type="file" required>
+  The image file to upload. Field name must be `image`.
+
+  **Supported formats**: JPEG, PNG, WEBP, GIF
+
+  **Maximum size**: 2 MB
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X PUT http://localhost:3001/api/users/me/profile-image \
+  -H "Cookie: better-auth.session_token=..." \
+  -F "image=@/path/to/photo.jpg"
+```
+
+</CodeGroup>
+
+### Response
+
+**Status**: `200 OK`
+
+```json
+{
+  "imageUrl": "https://storage.example.com/learningopk/profile/user-abc123/photo.webp"
+}
+```
+
+<ResponseField name="imageUrl" type="string" required>
+  Public URL of the uploaded profile image. The previous image URL in the user record is replaced with this value.
+</ResponseField>
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Missing `image` file in the multipart payload |
+| `400` | Unsupported image type — only JPEG, PNG, WEBP, and GIF are allowed |
+| `401` | No valid session — user is not authenticated |
+| `413` | File exceeds the 2 MB size limit |
+| `500` | Server error — failed to upload to MinIO or update the database |
+
+<Warning>
+If the upload succeeds but the database update fails, the newly uploaded object is automatically deleted to prevent orphaned files.
+</Warning>
