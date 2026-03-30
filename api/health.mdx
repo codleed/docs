@@ -1,0 +1,79 @@
+---
+title: Health API
+description: Health check endpoint for monitoring backend service status including database and cache connectivity.
+---
+
+## Overview
+
+The Health API provides a single endpoint for monitoring the backend service. It verifies connectivity to PostgreSQL and Redis, returning a degraded status if either dependency is unavailable.
+
+---
+
+## Health check
+
+Returns the operational status of the backend and its dependencies.
+
+```bash
+GET /api/health
+```
+
+**Auth**: None (public endpoint)
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl http://localhost:3001/api/health
+```
+
+</CodeGroup>
+
+### Response
+
+**Status**: `200 OK`
+
+```json
+{
+  "ok": true,
+  "postgres": "up",
+  "redis": "up"
+}
+```
+
+<ResponseField name="ok" type="boolean">
+  `true` when all dependencies are healthy.
+</ResponseField>
+
+<ResponseField name="postgres" type="string">
+  PostgreSQL connection status — `"up"` or `"degraded"`.
+</ResponseField>
+
+<ResponseField name="redis" type="string">
+  Redis connection status — `"up"` or `"degraded"`.
+</ResponseField>
+
+### Degraded response
+
+When one or more dependencies fail, the endpoint returns `503` with error details.
+
+**Status**: `503 Service Unavailable`
+
+```json
+{
+  "ok": false,
+  "postgres": "down",
+  "redis": "down",
+  "error": "Connection refused"
+}
+```
+
+<Warning>
+Use the `503` status code in load balancer health checks to automatically remove unhealthy instances from rotation.
+</Warning>
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `503` | One or more dependencies (PostgreSQL, Redis) are unreachable |

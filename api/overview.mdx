@@ -1,0 +1,121 @@
+---
+title: API Overview
+description: LearningoPK backend API reference — base URL, authentication pattern, and response format conventions.
+---
+
+## Base URL
+
+All API endpoints are served under the `/api` prefix. The frontend proxies requests through Next.js, but you can also call the backend directly.
+
+| Environment | Base URL |
+|-------------|----------|
+| Development | `http://localhost:3001/api` |
+| Production | `/api` (via frontend proxy) |
+
+## Authentication
+
+LearningoPK uses **session-based authentication** powered by [Better Auth](https://www.better-auth.com/). Sessions are stored in secure HTTP-only cookies.
+
+### How it works
+
+1. Call `POST /api/auth/sign-in/email` (or sign-up) to create a session
+2. The server sets a `Set-Cookie` header with the session token
+3. Subsequent requests automatically include the cookie
+4. Call `POST /api/auth/sign-out` to destroy the session
+
+### Auth levels
+
+| Level | Description |
+|-------|-------------|
+| **None** | Public endpoint — no session required |
+| **Student** | Requires a valid session (`requireSession` middleware) |
+| **Admin** | Requires a valid session with `role: "admin"` (`requireAdminRole` middleware) |
+
+### Checking the current session
+
+```bash
+GET /api/auth/get-session
+```
+
+Returns the current session object or `null` if not authenticated.
+
+## Response format
+
+The API uses a standardized response helper (`src/lib/response.ts`) for consistency.
+
+### Success responses
+
+```json
+// With data
+{ "data": { ... } }
+
+// With pagination
+{
+  "data": [ ... ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 150,
+    "totalPages": 8
+  }
+}
+
+// No content
+{ "success": true }
+```
+
+### Error responses
+
+```json
+{
+  "error": "Human-readable error message",
+  "code": "MACHINE_READABLE_CODE",
+  "details": { ... }
+}
+```
+
+<Note>
+  Some legacy endpoints return data directly without the `{ data }` wrapper. These are being migrated to the standard format during Phase 11 consistency work.
+</Note>
+
+## Rate limiting
+
+Rate limits are enforced on specific endpoints and returned via response headers:
+
+| Header | Description |
+|--------|-------------|
+| `x-ratelimit-limit` | Maximum requests allowed in the window |
+| `x-ratelimit-remaining` | Requests remaining in the current window |
+| `x-ratelimit-reset` | Seconds until the rate limit resets |
+| `retry-after` | Seconds to wait (only on `429` responses) |
+
+Endpoints with rate limiting:
+
+- **AI Chat** (`POST /api/ai-chat/chat`) — per-user token-based limit
+- **Forum mutations** (create thread, reply, vote, accept) — per-user request limit
+
+## Standard error codes
+
+| HTTP Status | Meaning |
+|-------------|---------|
+| `400` | Validation error — invalid request parameters or body |
+| `401` | Unauthorized — no valid session |
+| `403` | Forbidden — insufficient permissions (e.g., student accessing admin route) |
+| `404` | Not found — resource does not exist |
+| `409` | Conflict — resource already exists or state conflict |
+| `422` | Unprocessable — content blocked by safety/moderation checks |
+| `429` | Rate limited — too many requests |
+| `500` | Internal server error |
+| `502` | Bad gateway — upstream provider error (e.g., AI model) |
+| `503` | Service unavailable — dependency down or misconfigured |
+
+## Technology
+
+| Component | Stack |
+|-----------|-------|
+| Framework | Express.js (Node.js) |
+| Database | PostgreSQL 16 via Drizzle ORM |
+| Cache | Redis 7 |
+| Auth | Better Auth (session-based) |
+| Validation | Zod schemas |
+| AI Model | Mistral (via Vercel AI SDK) |

@@ -1,0 +1,75 @@
+---
+title: "Docker Setup"
+description: "Containerized infrastructure services for local development"
+---
+
+## Overview
+
+LearningoPK uses Docker Compose to run all infrastructure services locally with a single command.
+
+## Services
+
+| Service | Image | Port | Purpose |
+|---------|-------|------|---------|
+| **PostgreSQL** | postgres:16 | 5433 | Primary database |
+| **PgBouncer** | edoburu/pgbouncer | 6432 | Connection pooling |
+| **Redis** | redis:7-alpine | 6379 | Session cache, rate limiting |
+| **MinIO** | minio/minio | 9000 / 9001 | S3-compatible object storage |
+| **Nginx** | nginx:alpine | 80 | Reverse proxy |
+| **Backend** | Custom Dockerfile | 3001 | Express API server |
+
+## Starting Services
+
+```bash
+pnpm docker:up     # Start all services in detached mode
+pnpm docker:down   # Stop and remove all containers
+```
+
+## Service Configuration
+
+### PostgreSQL
+
+- Database: `learningo`
+- User: `postgres`
+- Password: `password`
+- Host port: `5433` (avoids conflicts with local PostgreSQL on 5432)
+
+### PgBouncer
+
+- Mode: transaction pooling
+- Max client connections: 500
+- Default pool size: 25
+- Connects to PostgreSQL internally
+
+### Redis
+
+- No authentication required for local development
+- Data persisted via Docker volume `redis_data`
+
+### MinIO
+
+- Root user: `minioadmin`
+- Root password: `minioadmin123`
+- Console: [http://localhost:9001](http://localhost:9001)
+- Auto-creates bucket `learningo-media` with public read policy
+
+## Volumes
+
+| Volume | Service | Purpose |
+|--------|---------|---------|
+| `postgres_data` | PostgreSQL | Database files |
+| `redis_data` | Redis | Cache and session data |
+| `minio_data` | MinIO | Uploaded media files |
+
+## Health Checks
+
+All services include health checks. The `backend` service waits for PostgreSQL and Redis to be healthy before starting.
+
+## Custom Configuration
+
+Infrastructure config files live in the `infra/` directory:
+
+- `infra/nginx.conf` — Nginx reverse proxy rules
+- `infra/pgbouncer.ini` — PgBouncer pool settings
+- `infra/pgbouncer-userlist.txt` — PgBouncer authentication
+- `infra/minio/public-read.json` — MinIO bucket policy

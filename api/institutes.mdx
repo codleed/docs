@@ -1,0 +1,69 @@
+---
+title: Institutes API
+description: Retrieve the list of institutes associated with the platform.
+---
+
+## Overview
+
+The Institutes API returns all educational institutes registered in the system. Institutes are ordered alphabetically by name.
+
+---
+
+## List institutes
+
+Returns all institutes ordered alphabetically by name.
+
+```bash
+GET /api/institutes
+```
+
+**Auth**: None (public endpoint)
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl http://localhost:3001/api/institutes
+```
+
+</CodeGroup>
+
+### Response
+
+**Status**: `200 OK`
+
+```json
+{
+  "institutes": [
+    {
+      "id": 1,
+      "name": "Delhi Public School"
+    },
+    {
+      "id": 2,
+      "name": "Kendriya Vidyalaya"
+    }
+  ]
+}
+```
+
+<ResponseField name="institutes" type="array" required>
+  Array of institute objects.
+
+  <Expandable title="institute object">
+    <ResponseField name="id" type="number" required>
+      Unique institute identifier.
+    </ResponseField>
+
+    <ResponseField name="name" type="string" required>
+      Display name of the institute.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `500` | Database error — failed to fetch institutes |

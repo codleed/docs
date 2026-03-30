@@ -1,0 +1,369 @@
+---
+title: Forum API
+description: Community forum for student discussions — threads, replies, voting, and accepted answers.
+---
+
+## Overview
+
+The Forum API powers the student community where learners can ask questions, share solutions, and help each other. Threads can be linked to subjects and chapters.
+
+All mutation endpoints (create, reply, vote, accept) are rate-limited per user.
+
+---
+
+## Get filter options
+
+Retrieve available boards, classes, subjects, and chapters for forum filtering.
+
+```bash
+GET /api/forum/filters
+```
+
+**Auth**: None
+
+### Response
+
+```json
+{
+  "boards": [
+    { "id": 1, "name": "Punjab Board", "slug": "punjab" }
+  ],
+  "classes": [
+    { "id": 1, "boardId": 1, "name": "9th", "slug": "9" }
+  ],
+  "subjects": [
+    { "id": 1, "boardClassId": 1, "name": "Physics", "slug": "physics" }
+  ],
+  "chapters": [
+    { "id": 1, "subjectId": 1, "chapterNumber": 1, "title": "Physical Quantities" }
+  ]
+}
+```
+
+---
+
+## List threads
+
+Retrieve a paginated, filterable list of forum threads.
+
+```bash
+GET /api/forum/threads
+```
+
+**Auth**: None
+
+### Query parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `board` | string | — | Filter by board slug |
+| `grade` | string | — | Filter by grade slug |
+| `subjectId` | number | — | Filter by subject ID |
+| `chapterId` | number | — | Filter by chapter ID |
+| `q` | string | — | Search threads by title (1–160 chars) |
+| `solved` | `"all"` \| `"solved"` \| `"unsolved"` | `"all"` | Filter by solved status |
+| `limit` | number | `20` | Results per page (1–100) |
+| `offset` | number | `0` | Pagination offset |
+
+### Response
+
+```json
+{
+  "threads": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "title": "How to balance chemical equations?",
+      "body": "I'm confused about balancing equations with polyatomic ions...",
+      "userId": "...",
+      "userName": "Ahmed Khan",
+      "subjectId": 3,
+      "chapterId": 12,
+      "isPinned": false,
+      "isSolved": true,
+      "views": 142,
+      "createdAt": "2026-03-25T10:00:00.000Z",
+      "updatedAt": "2026-03-25T10:00:00.000Z",
+      "boardSlug": "punjab",
+      "boardName": "Punjab Board",
+      "grade": "9",
+      "className": "9th",
+      "subjectName": "Chemistry",
+      "replyCount": 5
+    }
+  ]
+}
+```
+
+---
+
+## Get thread
+
+Retrieve a single thread with its replies in a nested tree structure.
+
+```bash
+GET /api/forum/threads/:threadId
+```
+
+**Auth**: None (optional — if authenticated, includes viewer vote info)
+
+### Path parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `threadId` | string (UUID) | Thread ID |
+
+### Query parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `trackView` | `"true"` | Set to `"true"` to increment the view count. Omit to avoid inflating counts from SSR/bots. |
+
+### Response
+
+```json
+{
+  "thread": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "title": "How to balance chemical equations?",
+    "body": "I'm confused about balancing...",
+    "userId": "...",
+    "userName": "Ahmed Khan",
+    "subjectId": 3,
+    "chapterId": 12,
+    "isPinned": false,
+    "isSolved": true,
+    "views": 142,
+    "createdAt": "2026-03-25T10:00:00.000Z",
+    "updatedAt": "2026-03-25T10:00:00.000Z",
+    "boardSlug": "punjab",
+    "boardName": "Punjab Board",
+    "grade": "9",
+    "className": "9th",
+    "subjectName": "Chemistry",
+    "replies": [
+      {
+        "id": "...",
+        "threadId": "...",
+        "userId": "...",
+        "userName": "Sara Ali",
+        "parentReplyId": null,
+        "body": "You need to count atoms on both sides...",
+        "isAcceptedAnswer": true,
+        "upvotes": 12,
+        "viewerVoteType": "upvote",
+        "createdAt": "2026-03-25T11:00:00.000Z",
+        "children": [
+          {
+            "id": "...",
+            "parentReplyId": "...",
+            "body": "That makes sense, thanks!",
+            "children": []
+          }
+        ]
+      }
+    ],
+    "replyCount": 5
+  }
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid thread identifier |
+| `404` | Thread not found |
+
+---
+
+## Create thread
+
+Create a new forum thread. Content is checked by AI safety moderation.
+
+```bash
+POST /api/forum/threads
+```
+
+**Auth**: Student (rate-limited)
+
+### Request body
+
+<ResponseField name="title" type="string" required>
+  Thread title — 5 to 160 characters.
+</ResponseField>
+
+<ResponseField name="body" type="string" required>
+  Thread body — minimum 10 characters.
+</ResponseField>
+
+<ResponseField name="subjectId" type="number">
+  Optional subject ID to categorize the thread.
+</ResponseField>
+
+<ResponseField name="chapterId" type="number">
+  Optional chapter ID to link the thread to a specific chapter.
+</ResponseField>
+
+### Response
+
+```json
+{
+  "data": {
+    "thread": {
+      "id": "...",
+      "title": "How to balance chemical equations?",
+      "body": "I'm confused about...",
+      "userId": "...",
+      "userName": "Ahmed Khan",
+      "subjectId": 3,
+      "chapterId": 12,
+      "isPinned": false,
+      "isSolved": false,
+      "views": 0,
+      "createdAt": "2026-03-28T10:00:00.000Z",
+      "updatedAt": "2026-03-28T10:00:00.000Z"
+    }
+  }
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid payload — title too short, body too short, etc. |
+| `422` | Forum content blocked by safety checks |
+| `429` | Rate limit exceeded |
+| `503` | Rate limit service unavailable |
+
+---
+
+## Reply to thread
+
+Add a reply to a forum thread. Supports nested replies via `parentReplyId`.
+
+```bash
+POST /api/forum/threads/:threadId/replies
+```
+
+**Auth**: Student (rate-limited)
+
+### Path parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `threadId` | string (UUID) | Thread ID |
+
+### Request body
+
+<ResponseField name="body" type="string" required>
+  Reply content — minimum 2 characters.
+</ResponseField>
+
+<ResponseField name="parentReplyId" type="string">
+  Optional UUID of the parent reply for nested threading.
+</ResponseField>
+
+### Response
+
+```json
+{
+  "data": {
+    "id": "...",
+    "threadId": "...",
+    "userId": "...",
+    "userName": "Ahmed Khan",
+    "body": "You need to count atoms on both sides...",
+    "parentReplyId": null,
+    "isAcceptedAnswer": false,
+    "upvotes": 0,
+    "createdAt": "2026-03-28T10:00:00.000Z"
+  }
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid thread identifier or reply payload |
+| `404` | Thread not found |
+| `422` | Reply content blocked by safety checks |
+| `429` | Rate limit exceeded |
+
+---
+
+## Vote on reply
+
+Upvote or downvote a forum reply. Submitting the same vote type again removes the vote (toggle behavior).
+
+```bash
+POST /api/forum/replies/:replyId/vote
+```
+
+**Auth**: Student (rate-limited)
+
+### Path parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `replyId` | string (UUID) | Reply ID |
+
+### Request body
+
+<ResponseField name="voteType" type='"upvote" | "downvote"' required>
+  Type of vote to cast.
+</ResponseField>
+
+### Response
+
+```json
+{
+  "data": {
+    "replyId": "...",
+    "voteType": "upvote",
+    "upvotes": 13,
+    "downvotes": 1
+  }
+}
+```
+
+---
+
+## Accept reply as answer
+
+Mark a reply as the accepted answer. Only the thread author can accept answers. Accepting a reply marks the thread as solved.
+
+```bash
+POST /api/forum/replies/:replyId/accept
+```
+
+**Auth**: Student (rate-limited, thread author only)
+
+### Path parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `replyId` | string (UUID) | Reply ID |
+
+### Response
+
+```json
+{
+  "data": {
+    "replyId": "...",
+    "isAcceptedAnswer": true,
+    "threadId": "...",
+    "isSolved": true
+  }
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid reply identifier |
+| `403` | Not the thread author |
+| `404` | Reply not found |
+| `429` | Rate limit exceeded |

@@ -1,0 +1,90 @@
+---
+title: "Contributing"
+description: "How to contribute to the LearningoPK project"
+---
+
+## Getting Started
+
+1. Fork the repository
+2. Clone your fork locally
+3. Follow the [Development Setup](/dev/setup) guide
+4. Create a feature branch
+
+## Branch Naming
+
+| Type | Pattern | Example |
+|------|---------|---------|
+| Feature | `feature/description` | `feature/quiz-timer` |
+| Bug fix | `fix/description` | `fix/auth-redirect` |
+| Docs | `docs/description` | `docs/api-reference` |
+
+## Development Workflow
+
+1. Create a branch from `main`
+
+```bash
+git checkout -b feature/my-feature
+```
+
+2. Make your changes
+
+3. Run linting and type checks
+
+```bash
+pnpm lint
+pnpm typecheck
+```
+
+4. Run tests
+
+```bash
+pnpm --filter backend test
+pnpm --filter frontend test:e2e
+```
+
+5. Commit your changes
+
+```bash
+git add .
+git commit -m "feat: add quiz timer countdown"
+```
+
+6. Push and create a pull request
+
+```bash
+git push origin feature/my-feature
+```
+
+## Commit Convention
+
+Follow conventional commits:
+
+| Prefix | Use |
+|--------|-----|
+| `feat:` | New feature |
+| `fix:` | Bug fix |
+| `docs:` | Documentation |
+| `refactor:` | Code refactoring |
+| `test:` | Adding tests |
+| `chore:` | Build, CI, or tooling changes |
+
+## Code Review
+
+- All changes require a pull request
+- CI checks (lint + typecheck) must pass before merge
+- At least one review required for non-trivial changes
+
+## What to Contribute
+
+- New quiz content and chapter solutions
+- UI improvements and bug fixes
+- AI tutor prompt improvements
+- Test coverage expansion
+- Documentation updates
+
+## What Not to Do
+
+- Never commit secrets (`.env` files, API keys)
+- Never use `any` type — use `unknown` or proper generics
+- Never place business logic in Next.js route handlers — use the Express backend
+- Never modify the Better Auth `users` table directly

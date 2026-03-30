@@ -1,0 +1,309 @@
+---
+title: "Code Style"
+description: "TypeScript conventions, naming patterns, and import style for LearningoPK"
+---
+
+## Overview
+
+LearningoPK enforces strict TypeScript conventions across backend and frontend packages. This guide covers naming patterns, import syntax, error handling, and organizational standards.
+
+## TypeScript Configuration
+
+### Backend (`tsconfig.json`)
+
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noUncheckedIndexedAccess": true,
+    "esModuleInterop": true,
+    "outDir": "dist",
+    "rootDir": "src"
+  }
+}
+```
+
+### Frontend (`tsconfig.json`)
+
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "moduleResolution": "bundler",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
+```
+
+<Warning>
+Both packages enforce `strict: true`. All code must pass strict type checking. There is no `any` escape hatch — use `unknown` or proper generics instead.
+</Warning>
+
+## Naming Conventions
+
+| Element | Convention | Example |
+|---------|-----------|---------|
+| Route files | `kebab-case` | `ai-chat.ts`, `mock-exams.ts` |
+| Service files | `camelCase` + suffix | `quiz.service.ts`, `progress.service.ts` |
+| Repository files | `camelCase` + suffix | `quiz.repository.ts`, `learn.repository.ts` |
+| Worker files | `camelCase` + suffix | `analytics.worker.ts`, `email.worker.ts` |
+| Database tables | `snake_case` | `user_progress`, `quiz_attempts` |
+| Database columns | `snake_case` | `created_at`, `chapter_id` |
+| Zod schemas | `PascalCase` + `Schema` | `CreateThreadSchema`, `SubmitQuizSchema` |
+| Constants | `UPPER_SNAKE_CASE` | `MAX_UPLOAD_SIZE`, `DEFAULT_PAGE_SIZE` |
+| Type aliases | `PascalCase` | `CacheKey`, `JobDefinition` |
+| Interfaces | `PascalCase` | `CacheOptions`, `EmailJobData` |
+| Functions | `camelCase` | `successResponse`, `processDailyAnalytics` |
+| Classes | `PascalCase` | `CacheService`, `QuizRepository` |
+
+## File Structure
+
+### Backend
+
+```
+backend/src/
+├── routes/          # Express routers — HTTP layer only
+├── services/        # Business logic, orchestration
+├── repositories/    # Database queries (Drizzle)
+├── lib/             # Utilities, clients, helpers
+│   ├── cache/       # CacheService
+│   ├── db/          # Drizzle schema, client, migrations
+│   ├── errors/      # Error classes
+│   └── *.ts         # redis, queue, response, env, etc.
+├── middleware/       # Express middleware
+├── workers/         # BullMQ worker factories
+├── jobs/            # Job processor functions + types
+├── scripts/         # CLI verification scripts
+└── tests/
+    ├── unit/        # *.unit.test.ts
+    └── integration/ # *.integration.test.ts
+```
+
+### Frontend
+
+```
+frontend/
+├── app/             # Next.js App Router pages
+├── src/
+│   └── components/
+│       ├── ui/      # Reusable primitives (Button, Card, Badge, Input)
+│       ├── auth/    # Authentication forms and layouts
+│       ├── learn/   # Chapter, quiz, flashcard components
+│       ├── dashboard/ # Student dashboard widgets
+│       ├── admin/   # Admin panel components
+│       ├── forum/   # Forum thread and reply components
+│       ├── stats/   # Statistics and charting components
+│       ├── foundation/ # App shell, layout, navigation
+│       ├── graph/   # Chapter link graph visualization
+│       ├── layout/  # Page containers
+│       └── navigation/ # Breadcrumbs, sidebars
+└── tests/
+    └── e2e/         # *.spec.ts (Playwright)
+```
+
+## Import Style
+
+### Backend — ES Modules
+
+Backend imports must include the `.js` extension because of `module: "NodeNext"`:
+
+```typescript
+// Correct
+import { auth } from "../lib/auth.js";
+import { db } from "../lib/db/index.js";
+import { successResponse, errorResponse } from "../lib/response.js";
+
+// Incorrect — will fail at runtime
+import { auth } from "../lib/auth";
+import { db } from "../lib/db";
+```
+
+<Warning>
+Missing `.js` extensions in backend imports is the most common TypeScript error. The code compiles but fails at runtime with `ERR_MODULE_NOT_FOUND`.
+</Warning>
+
+### Frontend — Path Aliases
+
+Frontend imports use the `@/` alias mapped to `./src/`:
+
+```typescript
+// Correct
+import { Button, Card, Badge } from "@/components/ui";
+import { authClient } from "@/lib/auth-client";
+
+// Incorrect — avoid relative paths across directories
+import { Button } from "../../../components/ui/button";
+```
+
+### External Libraries
+
+```typescript
+// Backend — direct imports from node_modules
+import { eq, and, desc } from "drizzle-orm";
+import { Router } from "express";
+import { Queue, Worker } from "bullmq";
+
+// Frontend — same, through bundler resolution
+import { useState, useCallback } from "react";
+import { defineConfig } from "@playwright/test";
+```
+
+## Error Handling
+
+### API Routes
+
+All routes use the response helpers from `src/lib/response.ts`:
+
+```typescript
+import { successResponse, errorResponse } from "../lib/response.js";
+
+// Error response with code
+res.status(400).json(errorResponse("Invalid input", "VALIDATION_ERROR"));
+
+// Error with details
+res.status(404).json(errorResponse(
+  "Chapter not found",
+  "NOT_FOUND",
+  { chapterId: 123 }
+));
+
+// Success response
+res.json(successResponse(chapters));
+
+// Paginated response
+res.json(paginatedResponse(threads, page, limit, total));
+
+// No content
+res.json(noContentResponse());
+```
+
+### Service Layer
+
+Services throw errors that route handlers catch:
+
+```typescript
+// service
+async submitQuiz(userId: string, data: SubmitQuizData) {
+  const quiz = await quizRepository.findQuizById(data.quizId);
+  if (!quiz) throw new Error("Quiz not found");
+  // ... business logic
+}
+
+// route handler
+router.post("/submit", async (req, res) => {
+  try {
+    const result = await quizService.submitQuiz(req.userId, req.body);
+    res.json(successResponse(result));
+  } catch (err) {
+    res.status(400).json(errorResponse(
+      err instanceof Error ? err.message : "Unknown error",
+      "SUBMIT_ERROR"
+    ));
+  }
+});
+```
+
+### Repository Layer
+
+Repositories return query results directly — they do not throw domain errors:
+
+```typescript
+async findQuizById(quizId: number) {
+  return db
+    .select({ id: quizzes.id, totalMarks: quizzes.totalMarks })
+    .from(quizzes)
+    .where(eq(quizzes.id, quizId))
+    .limit(1);
+}
+```
+
+## Component Patterns
+
+### UI Components (CVA)
+
+All reusable UI primitives use [Class Variance Authority](https://cva.style/docs):
+
+```typescript
+import { cva, type VariantProps } from "class-variance-authority";
+
+const badgeVariants = cva(
+  "inline-flex items-center rounded-full text-xs font-medium",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground",
+        success: "bg-green-100 text-green-800",
+        warning: "bg-yellow-100 text-yellow-800",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+);
+```
+
+### Imports from UI Library
+
+Always import from the barrel export:
+
+```typescript
+// Correct
+import { Button, Card, Badge, Input } from "@/components/ui";
+
+// Not this — avoids coupling to internal file structure
+import { Button } from "@/components/ui/button";
+```
+
+## Spacing & Layout
+
+The frontend follows a 4px spacing grid:
+
+| Token | Value | Use |
+|-------|-------|-----|
+| `p-1` | 4px | Tight inner padding |
+| `p-2` | 8px | Default inner padding |
+| `p-4` | 16px | Card padding |
+| `gap-2` | 8px | Inline spacing |
+| `gap-4` | 16px | Section spacing |
+| `gap-6` | 24px | Major section gap |
+
+## Git Conventions
+
+| Pattern | Example |
+|---------|---------|
+| Feature branch | `feature/quiz-timer` |
+| Bug fix | `fix/cache-invalidation` |
+| Chore | `chore/update-dependencies` |
+
+Commit messages should be imperative and concise:
+
+```
+Add quiz timer countdown component
+Fix cache invalidation for chapter updates
+Update Playwright to 1.50
+```
+
+## Linting
+
+```bash
+# Lint all packages
+pnpm lint
+
+# TypeScript check all packages
+pnpm typecheck
+
+# Lint backend only
+pnpm --filter backend lint
+
+# Lint frontend only
+pnpm --filter frontend lint
+```
+
+<Note>
+`pnpm lint` and `pnpm typecheck` run the same check on the backend (TypeScript only). On the frontend, `lint` runs ESLint while `typecheck` runs `tsc --noEmit`.
+</Note>

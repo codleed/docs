@@ -1,0 +1,638 @@
+---
+title: Admin API
+description: Administrative endpoints for content management, user moderation, analytics, notifications, and settings.
+---
+
+## Overview
+
+Admin endpoints provide full platform management capabilities. All admin endpoints require authentication with an `admin` role.
+
+<Warning>
+Every admin endpoint enforces role-based access via `requireAdminRole`. Non-admin users receive `403 Forbidden`. All mutating actions are logged to the audit trail.
+</Warning>
+
+---
+
+## Dashboard overview
+
+Retrieve high-level platform KPIs and recent admin activity.
+
+```bash
+GET /api/admin/overview
+```
+
+**Auth**: Admin
+
+### Query parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `windowDays` | `7` \| `30` \| `90` | `30` | Time window for metrics |
+
+### Response
+
+```json
+{
+  "windowDays": 30,
+  "kpis": {
+    "openModerationFlags": 3,
+    "suspendedUsers": 1,
+    "failedAdminActionsLast24h": 0,
+    "notificationsSentInWindow": 5
+  },
+  "alerts": {
+    "showHighPriorityBanner": false,
+    "reasons": []
+  },
+  "recentActivity": [
+    {
+      "id": 1,
+      "scope": "content",
+      "action": "Publish chapter",
+      "target": "Physics - Physical Quantities",
+      "status": "success",
+      "message": "Chapter published successfully.",
+      "actor": {
+        "id": "...",
+        "name": "Admin User"
+      },
+      "occurredAt": "2026-03-28T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+<Accordion title="Alert thresholds">
+- **Open moderation flags**: High-priority banner if >= 10 open flags
+- **Failed admin actions (24h)**: High-priority banner if >= 5 failed actions in the last 24 hours
+</Accordion>
+
+---
+
+## Analytics overview
+
+Retrieve detailed analytics with subject-level performance breakdowns.
+
+```bash
+GET /api/admin/analytics/overview
+```
+
+**Auth**: Admin
+
+### Query parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `windowDays` | `7` \| `30` \| `90` | `30` | Time window for analytics |
+
+### Response
+
+```json
+{
+  "windowDays": 30,
+  "summary": {
+    "activeStudents": 142,
+    "quizAttempts": 1250,
+    "averageQuizScorePercent": 72.4,
+    "threadsCreated": 38,
+    "openModerationFlags": 3
+  },
+  "subjectPerformance": [
+    {
+      "subjectId": 1,
+      "subjectName": "Physics",
+      "grade": "9",
+      "boardName": "Punjab Board",
+      "attempts": 320,
+      "averageScorePercent": 68.5,
+      "activeStudents": 45
+    }
+  ]
+}
+```
+
+---
+
+## Content management
+
+### Get curriculum tree
+
+Retrieve the full curriculum hierarchy: boards > classes > subjects > chapters.
+
+```bash
+GET /api/admin/content/curriculum
+```
+
+**Auth**: Admin
+
+### Response
+
+```json
+{
+  "boards": [
+    {
+      "id": 1,
+      "name": "Punjab Board",
+      "slug": "punjab",
+      "classes": [
+        {
+          "id": 1,
+          "name": "9th",
+          "slug": "9",
+          "subjects": [
+            {
+              "id": 1,
+              "name": "Physics",
+              "slug": "physics",
+              "icon": null,
+              "description": "Introduction to physics",
+              "chapters": [
+                {
+                  "id": 1,
+                  "chapterNumber": 1,
+                  "title": "Physical Quantities",
+                  "slug": "physical-quantities",
+                  "isPublished": true
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Create board
+
+```bash
+POST /api/admin/content/boards
+```
+
+**Auth**: Admin
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Board display name (min 2 chars) |
+| `slug` | string | Yes | URL-safe slug (min 2 chars) |
+
+### Update board
+
+```bash
+POST /api/admin/content/boards/:id/update
+```
+
+### Delete board
+
+```bash
+POST /api/admin/content/boards/:id/delete
+```
+
+### Create class
+
+```bash
+POST /api/admin/content/classes
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `boardId` | number | Yes | Parent board ID |
+| `name` | string | Yes | Class name (min 1 char) |
+| `slug` | string | Yes | URL-safe slug (min 1 char) |
+
+### Update class
+
+```bash
+POST /api/admin/content/classes/:id/update
+```
+
+### Delete class
+
+Deletes the class and all its subjects in a transaction.
+
+```bash
+POST /api/admin/content/classes/:id/delete
+```
+
+### Create subject
+
+```bash
+POST /api/admin/content/subjects
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `boardClassId` | number | Yes | Parent class ID |
+| `name` | string | Yes | Subject name (min 1 char) |
+| `slug` | string | Yes | URL-safe slug (min 1 char) |
+| `icon` | string | No | Icon identifier |
+| `description` | string | No | Subject description |
+
+### Create chapter
+
+```bash
+POST /api/admin/content/chapters
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `subjectId` | number | Yes | Parent subject ID |
+| `chapterNumber` | number | Yes | Chapter number (positive integer) |
+| `title` | string | Yes | Chapter title (min 1 char) |
+| `slug` | string | Yes | URL-safe slug (min 1 char) |
+| `summary` | string | Yes | Chapter summary markdown (min 1 char) |
+| `isPublished` | boolean | No | Publish status (default: `false`) |
+
+### Get chapters list
+
+```bash
+GET /api/admin/content/chapters
+```
+
+### Get chapters graph
+
+```bash
+GET /api/admin/content/chapters/graph?q=searchterm
+```
+
+Returns a graph of chapter nodes and wiki-link edges.
+
+### Update chapter
+
+```bash
+POST /api/admin/content/chapters/:id/update
+```
+
+### Delete chapter
+
+```bash
+POST /api/admin/content/chapters/:id/delete
+```
+
+### Rename chapter
+
+```bash
+POST /api/admin/content/chapters/:id/rename
+```
+
+| Field | Type | Required |
+|-------|------|----------|
+| `title` | string | Yes |
+| `slug` | string | Yes |
+
+### Publish/unpublish chapter
+
+```bash
+POST /api/admin/content/chapters/:id/publish
+```
+
+| Field | Type | Required |
+|-------|------|----------|
+| `isPublished` | boolean | Yes |
+
+### Get chapter summary
+
+```bash
+GET /api/admin/content/chapters/:id/summary
+```
+
+### Update chapter summary
+
+```bash
+POST /api/admin/content/chapters/:id/summary
+```
+
+| Field | Type | Required |
+|-------|------|----------|
+| `summary` | string | Yes (min 1 char) |
+
+### Get chapter links
+
+```bash
+GET /api/admin/content/chapters/:id/links
+```
+
+Returns outgoing wiki-links and backlinks for the chapter.
+
+### Get link suggestions
+
+```bash
+GET /api/admin/content/chapters/link-suggestions?q=searchterm&limit=20
+```
+
+### Create exercise
+
+```bash
+POST /api/admin/content/exercises
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `chapterId` | number | Yes | Parent chapter ID |
+| `exerciseNumber` | string | Yes | Exercise identifier (e.g., `"1.1"`) |
+| `question` | string | Yes | Question text (min 1 char) |
+| `solution` | string | Yes | Solution text (min 1 char) |
+| `difficulty` | `"easy"` \| `"medium"` \| `"hard"` | No | Default: `"medium"` |
+| `type` | `"mcq"` \| `"short"` \| `"long"` \| `"numerical"` | No | Default: `"short"`. Numerical is only allowed for Physics chapters. |
+
+### List exercises
+
+```bash
+GET /api/admin/content/exercises?chapterId=5
+```
+
+### Update exercise
+
+```bash
+POST /api/admin/content/exercises/:id/update
+```
+
+### Delete exercise
+
+```bash
+POST /api/admin/content/exercises/:id/delete
+```
+
+---
+
+## User management
+
+### List users
+
+```bash
+GET /api/admin/users
+```
+
+**Auth**: Admin
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | number | `1` | Page number |
+| `pageSize` | number | `20` | Results per page (1–100) |
+| `q` | string | `""` | Search by name or email |
+| `role` | `"student"` \| `"admin"` | — | Filter by role |
+| `status` | `"active"` \| `"suspended"` | — | Filter by status |
+
+### Response
+
+```json
+{
+  "entries": [
+    {
+      "id": "...",
+      "name": "Ahmed Khan",
+      "email": "ahmed@example.com",
+      "role": "student",
+      "status": "active",
+      "suspendedAt": null,
+      "suspendedReason": null,
+      "suspendedBy": null,
+      "createdAt": "2026-01-15T10:00:00.000Z"
+    }
+  ],
+  "total": 150,
+  "page": 1,
+  "pageSize": 20,
+  "hasMore": true
+}
+```
+
+### Update user role
+
+```bash
+POST /api/admin/users/:id/role
+```
+
+| Field | Type | Required |
+|-------|------|----------|
+| `role` | `"student"` \| `"admin"` | Yes |
+
+<Note>Admins cannot change their own role (self-mutation is blocked).
+</Note>
+
+### Suspend/Reactivate user
+
+```bash
+POST /api/admin/users/:id/suspension
+```
+
+<AccordionGroup>
+  <Accordion title="Suspend">
+    ```json
+    {
+      "action": "suspend",
+      "reason": "Violation of community guidelines — minimum 10 characters"
+    }
+    ```
+  </Accordion>
+  <Accordion title="Reactivate">
+    ```json
+    {
+      "action": "reactivate"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+Only student users can be suspended. Admins cannot suspend themselves.
+
+---
+
+## Moderation
+
+### List moderation flags
+
+```bash
+GET /api/admin/moderation/flags
+```
+
+**Auth**: Admin
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | number | `1` | Page number |
+| `pageSize` | number | `20` | Results per page (1–100) |
+| `status` | `"open"` \| `"resolved"` | `"open"` | Filter by status |
+| `targetType` | `"thread"` \| `"reply"` \| `"chapter"` | — | Filter by target type |
+
+### Resolve moderation flag
+
+```bash
+POST /api/admin/moderation/flags/:id/resolve
+```
+
+| Field | Type | Required |
+|-------|------|----------|
+| `note` | string | Yes (min 10 chars) |
+
+### Response
+
+```json
+{
+  "flag": {
+    "id": "...",
+    "createdAt": "2026-03-25T10:00:00.000Z",
+    "targetType": "thread",
+    "targetId": "...",
+    "targetLabel": "Inappropriate thread title",
+    "reason": "Spam content detected",
+    "status": "resolved",
+    "resolvedBy": "...",
+    "resolvedAt": "2026-03-28T10:00:00.000Z",
+    "resolutionNote": "Thread removed and user warned."
+  }
+}
+```
+
+---
+
+## Community management
+
+### List threads (admin view)
+
+```bash
+GET /api/admin/community/threads
+```
+
+**Auth**: Admin
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | number | `1` | Page number |
+| `pageSize` | number | `20` | Results per page (1–100) |
+| `solved` | `"all"` \| `"solved"` \| `"unsolved"` | `"all"` | Filter by solved status |
+| `pinned` | `"all"` \| `"pinned"` \| `"unpinned"` | `"all"` | Filter by pinned status |
+| `flagState` | `"all"` \| `"openFlags"` \| `"noOpenFlags"` | `"all"` | Filter by open moderation flags |
+
+### Pin/unpin thread
+
+```bash
+POST /api/admin/forum/threads/:threadId/pin
+```
+
+| Field | Type | Required |
+|-------|------|----------|
+| `isPinned` | boolean | Yes |
+
+---
+
+## Notifications
+
+### List notifications
+
+```bash
+GET /api/admin/notifications
+```
+
+**Auth**: Admin
+
+| Parameter | Type | Default |
+|-----------|------|---------|
+| `page` | number | `1` |
+| `pageSize` | number | `20` |
+
+### Create notification
+
+```bash
+POST /api/admin/notifications
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `title` | string | Yes | Notification title (min 5 chars) |
+| `message` | string | Yes | Notification body (min 10 chars) |
+| `audience` | `"all"` \| `"students"` \| `"admins"` | Yes | Target audience |
+
+### Response
+
+```json
+{
+  "notification": {
+    "id": "...",
+    "title": "Scheduled Maintenance",
+    "message": "The platform will be down for maintenance on Saturday.",
+    "audience": "all",
+    "status": "sent",
+    "createdBy": {
+      "id": "...",
+      "name": "Admin User"
+    },
+    "createdAt": "2026-03-28T10:00:00.000Z"
+  }
+}
+```
+
+---
+
+## Settings
+
+### List settings
+
+```bash
+GET /api/admin/settings
+```
+
+**Auth**: Admin
+
+### Response
+
+```json
+{
+  "entries": [
+    {
+      "key": "forum_auto_lock_hours",
+      "value": "72",
+      "description": "Hours before an inactive thread is automatically locked",
+      "updatedBy": {
+        "id": "...",
+        "name": "Admin User"
+      },
+      "updatedAt": "2026-03-20T10:00:00.000Z"
+    },
+    {
+      "key": "quiz_pass_threshold_percent",
+      "value": "50",
+      "description": "Minimum percentage to pass a quiz",
+      "updatedBy": null,
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "key": "maintenance_banner_enabled",
+      "value": "false",
+      "description": "Show maintenance banner to all users",
+      "updatedBy": null,
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "total": 3,
+  "page": 1,
+  "pageSize": 20,
+  "hasMore": false
+}
+```
+
+### Update setting
+
+```bash
+POST /api/admin/settings/:key
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `value` | string | Yes | New setting value (1–2000 chars) |
+
+Only the following keys are updatable:
+
+| Key | Description |
+|-----|-------------|
+| `forum_auto_lock_hours` | Hours before inactive threads auto-lock |
+| `quiz_pass_threshold_percent` | Minimum percentage to pass a quiz |
+| `maintenance_banner_enabled` | Show maintenance banner (`"true"` / `"false"`) |
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid setting key or value |
+| `404` | Setting key not found (not in updatable list) |

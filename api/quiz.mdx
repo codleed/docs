@@ -1,0 +1,122 @@
+---
+title: Quiz API
+description: Quiz submission and scoring for chapter-level MCQ assessments.
+---
+
+## Overview
+
+The Quiz API handles submission and scoring of chapter-level quizzes. Quizzes are MCQ-based with options A through D. Each question carries marks, and the total score is calculated automatically.
+
+<Note>
+Quiz questions are served via the [Learn API](/api/learn#get-chapter-detail) chapter endpoint. The `correctOption` and `explanation` fields are only returned after submission through this API.
+</Note>
+
+---
+
+## Submit quiz
+
+Submit answers for a quiz and receive scored results with explanations.
+
+```bash
+POST /api/quiz/submit
+```
+
+**Auth**: Student
+
+### Request body
+
+<ResponseField name="quizId" type="number" required>
+  The quiz ID (obtained from the chapter detail endpoint).
+</ResponseField>
+
+<ResponseField name="answers" type="object" required>
+  A map of question IDs to selected options. Keys must be numeric strings, values must be `"a"`, `"b"`, `"c"`, or `"d"`.
+  
+  Example: `{ "1": "a", "2": "c", "3": "b" }`
+</ResponseField>
+
+<ResponseField name="startedAt" type="string">
+  Optional ISO 8601 timestamp indicating when the student started the quiz. Used for time tracking.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:3001/api/quiz/submit \
+  -H "Content-Type: application/json" \
+  -H "Cookie: better-auth.session_token=..." \
+  -d '{
+    "quizId": 1,
+    "answers": {
+      "1": "c",
+      "2": "a",
+      "3": "b",
+      "4": "d",
+      "5": "a"
+    },
+    "startedAt": "2026-03-28T10:00:00.000Z"
+  }'
+```
+
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "quizId": 1,
+  "score": 4,
+  "totalMarks": 5,
+  "percentage": 80,
+  "passed": true,
+  "results": [
+    {
+      "questionId": 1,
+      "question": "Which of the following is a vector quantity?",
+      "selectedOption": "c",
+      "correctOption": "c",
+      "isCorrect": true,
+      "explanation": "Velocity has both magnitude and direction, making it a vector quantity.",
+      "marks": 1
+    },
+    {
+      "questionId": 2,
+      "question": "The SI unit of mass is:",
+      "selectedOption": "a",
+      "correctOption": "b",
+      "isCorrect": false,
+      "explanation": "The SI unit of mass is the kilogram (kg).",
+      "marks": 0
+    }
+  ],
+  "completedAt": "2026-03-28T10:05:00.000Z"
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid payload — malformed answers or question IDs not belonging to this quiz |
+| `404` | Quiz not found |
+| `422` | Quiz has no questions to score |
+
+<Accordion title="Detailed error examples">
+
+**Question ID mismatch:**
+```json
+{
+  "error": "Answers include question IDs that do not belong to this quiz."
+}
+```
+
+**Empty quiz:**
+```json
+{
+  "error": "Quiz has no questions to score."
+}
+```
+
+</Accordion>

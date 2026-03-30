@@ -1,0 +1,823 @@
+---
+title: Database Schema
+description: Complete Drizzle ORM schema reference for LearningoPK's PostgreSQL database — 30 tables across 8 domains with relationships, column types, enums, and migration workflow.
+---
+
+## Overview
+
+LearningoPK uses **PostgreSQL 16** with **Drizzle ORM** for schema management and migrations. The database contains **30 tables** organized into 8 functional domains. All tables use `snake_case` naming. Foreign keys enforce referential integrity with appropriate cascade rules.
+
+| Domain | Tables | Description |
+|--------|--------|-------------|
+| **Auth** | 4 | User accounts, sessions, OAuth providers, email verification |
+| **Curriculum** | 8 | Boards, classes, subjects, chapters, content sources, cross-references, media |
+| **Assessment** | 5 | Exercises, flashcards, quizzes, questions, attempts |
+| **AI** | 3 | Chat sessions, messages, token usage logs |
+| **Forum** | 3 | Threads, replies, votes |
+| **Progress** | 1 | Per-chapter user progress tracking |
+| **Admin** | 4 | Moderation flags, audit logs, notifications, settings |
+| **Planner** | 2 | Mock exams, institutes |
+
+## Enums
+
+Custom PostgreSQL enums enforce type safety at the database level.
+
+| Enum | Values | Used By |
+|------|--------|---------|
+| `user_role` | `student`, `admin` | `user` |
+| `user_status` | `active`, `suspended` | `user` |
+| `grade` | `9`, `10` | `subjects`, `content_sources`, `mock_exams` |
+| `difficulty` | `easy`, `medium`, `hard` | `exercises` |
+| `exercise_type` | `mcq`, `short`, `long`, `numerical` | `exercises` |
+| `quiz_type` | `chapter_quiz`, `mock_exam` | `quizzes`, `quiz_attempts` |
+| `answer_option` | `a`, `b`, `c`, `d` | `quiz_questions` |
+| `ai_message_role` | `user`, `assistant` | `ai_messages` |
+| `vote_type` | `upvote`, `downvote` | `forum_reply_votes` |
+| `moderation_target_type` | `thread`, `reply`, `chapter` | `moderation_flags` |
+| `moderation_status` | `open`, `resolved` | `moderation_flags` |
+| `admin_audit_scope` | `content`, `forum`, `moderation`, `notifications`, `settings`, `users` | `admin_audit_logs` |
+| `admin_audit_status` | `success`, `failed` | `admin_audit_logs` |
+| `notification_audience` | `all`, `students`, `admins` | `admin_notifications` |
+| `notification_status` | `sent` | `admin_notifications` |
+
+---
+
+<AccordionGroup>
+<Accordion title="Auth Domain (4 tables)">
+
+### user
+
+Core user table managed by Better Auth. Stores profile data, gamification state, and suspension info.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `text` | PK | — | Better Auth user identifier |
+| `name` | `text` | NOT NULL | — | Display name |
+| `email` | `text` (unique) | NOT NULL | — | Email address |
+| `email_verified` | `boolean` | NOT NULL | `false` | Email verification status |
+| `image` | `text` | NULL | — | Avatar URL |
+| `student_class` | `text` | NULL | — | Student's class/grade label |
+| `degree` | `text` | NULL | — | Degree program |
+| `board` | `text` | NULL | — | Education board slug |
+| `role` | `user_role` | NOT NULL | `student` | `student` or `admin` |
+| `status` | `user_status` | NOT NULL | `active` | Account status |
+| `xp` | `integer` | NOT NULL | `0` | Experience points |
+| `level` | `integer` | NOT NULL | `0` | Gamification level |
+| `streak_freeze_used_at` | `timestamptz` | NULL | — | Last streak freeze usage |
+| `suspended_at` | `timestamptz` | NULL | — | Suspension timestamp |
+| `suspended_reason` | `text` | NULL | — | Reason for suspension |
+| `suspended_by` | `text` (FK → user.id) | NULL | — | Admin who suspended (SET NULL on delete) |
+| `created_at` | `timestamptz` | NOT NULL | `now()` | Account creation |
+| `updated_at` | `timestamptz` | NOT NULL | `now()` | Last profile update |
+
+**Relationships:**
+- `suspended_by` → `user.id` (self-referential, SET NULL)
+- Referenced by: `session`, `account`, `verification`, `quiz_attempts`, `ai_chat_sessions`, `forum_threads`, `forum_replies`, `forum_reply_votes`, `user_progress`, `moderation_flags`, `admin_audit_logs`, `admin_notifications`, `admin_settings`, `chapter_summary_media`
+
+<Tip>
+  The `xp` and `level` columns power the gamification system. Progress events update these values atomically.
+</Tip>
+
+### session
+
+Active user sessions managed by Better Auth. Rows are created on login and destroyed on logout.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `text` | PK | — | Session identifier |
+| `expires_at` | `timestamptz` | NOT NULL | — | Session expiration |
+| `token` | `text` (unique) | NOT NULL | — | Session token |
+| `created_at` | `timestamptz` | NOT NULL | `now()` | Creation time |
+| `updated_at` | `timestamptz` | NOT NULL | `now()` | Last update |
+| `ip_address` | `text` | NULL | — | Client IP |
+| `user_agent` | `text` | NULL | — | Client user agent |
+| `user_id` | `text` (FK → user.id) | NOT NULL | — | Owner (CASCADE on delete) |
+
+**Relationships:**
+- `user_id` → `user.id` (CASCADE)
+
+### account
+
+OAuth and credential accounts linked to users. Better Auth manages this table for social login and email/password auth.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `text` | PK | — | Account identifier |
+| `account_id` | `text` | NOT NULL | — | Provider account ID |
+| `provider_id` | `text` | NOT NULL | — | Auth provider (e.g., `credential`, `google`) |
+| `user_id` | `text` (FK → user.id) | NOT NULL | — | Owner (CASCADE on delete) |
+| `access_token` | `text` | NULL | — | OAuth access token |
+| `refresh_token` | `text` | NULL | — | OAuth refresh token |
+| `id_token` | `text` | NULL | — | OIDC ID token |
+| `access_token_expires_at` | `timestamptz` | NULL | — | Access token expiry |
+| `refresh_token_expires_at` | `timestamptz` | NULL | — | Refresh token expiry |
+| `scope` | `text` | NULL | — | Granted OAuth scopes |
+| `password` | `text` | NULL | — | Hashed password (for credential provider) |
+| `created_at` | `timestamptz` | NOT NULL | `now()` | Creation time |
+| `updated_at` | `timestamptz` | NOT NULL | `now()` | Last update |
+
+**Indexes:** `account_provider_account_idx` (unique on `provider_id`, `account_id`)
+
+**Relationships:**
+- `user_id` → `user.id` (CASCADE)
+
+### verification
+
+Stores email verification and password reset tokens managed by Better Auth.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `text` | PK | — | Verification identifier |
+| `identifier` | `text` | NOT NULL | — | Email or identifier being verified |
+| `value` | `text` | NOT NULL | — | Verification token |
+| `expires_at` | `timestamptz` | NOT NULL | — | Token expiration |
+| `created_at` | `timestamptz` | NOT NULL | `now()` | Creation time |
+| `updated_at` | `timestamptz` | NOT NULL | `now()` | Last update |
+
+**Indexes:** `verification_identifier_value_idx` (unique on `identifier`, `value`)
+
+</Accordion>
+
+<Accordion title="Curriculum Domain (8 tables)">
+
+### boards
+
+Education boards (e.g., Federal Board, Punjab Board, Sindh Board).
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `serial` | PK | auto-increment | Board identifier |
+| `name` | `text` | NOT NULL | — | Display name |
+| `slug` | `text` (unique) | NOT NULL | — | URL-safe slug |
+
+**Referenced by:** `board_classes`, `subjects`, `content_sources`, `mock_exams`
+
+### board_classes
+
+Class levels within a board. Supports boards that have their own class naming.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `serial` | PK | auto-increment | Class identifier |
+| `board_id` | `integer` (FK → boards.id) | NOT NULL | — | Parent board (CASCADE on delete) |
+| `name` | `text` | NOT NULL | — | Class name (e.g., "9th Class") |
+| `slug` | `text` | NOT NULL | — | URL-safe slug |
+
+**Indexes:** `board_classes_board_slug_idx` (unique on `board_id`, `slug`)
+
+**Relationships:**
+- `board_id` → `boards.id` (CASCADE)
+
+### subjects
+
+Academic subjects scoped to a board and grade/class.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `serial` | PK | auto-increment | Subject identifier |
+| `board_id` | `integer` (FK → boards.id) | NOT NULL | — | Parent board (CASCADE on delete) |
+| `grade` | `grade` | NULL | — | Grade 9 or 10 |
+| `board_class_id` | `integer` (FK → board_classes.id) | NULL | — | Associated class (SET NULL on delete) |
+| `name` | `text` | NOT NULL | — | Subject name (e.g., "Mathematics") |
+| `slug` | `text` | NOT NULL | — | URL-safe slug |
+| `icon` | `text` | NULL | — | Icon identifier |
+| `description` | `text` | NULL | — | Subject description |
+
+**Indexes:**
+- `subjects_board_grade_slug_idx` (unique on `board_id`, `grade`, `slug`)
+- `subjects_board_class_slug_idx` (unique on `board_class_id`, `slug`)
+
+**Relationships:**
+- `board_id` → `boards.id` (CASCADE)
+- `board_class_id` → `board_classes.id` (SET NULL)
+- Referenced by: `content_sources`, `chapters`, `forum_threads`, `mock_exams`
+
+<Warning>
+  Either `grade` or `board_class_id` must be set depending on the board's class system. The dual unique indexes enforce different slug scoping strategies.
+</Warning>
+
+### content_sources
+
+Tracks imported content files with hash-based deduplication.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `uuid` | PK | `gen_random_uuid()` | Source identifier |
+| `board_id` | `integer` (FK → boards.id) | NOT NULL | — | Parent board (CASCADE on delete) |
+| `grade` | `grade` | NOT NULL | — | Target grade |
+| `subject_id` | `integer` (FK → subjects.id) | NOT NULL | — | Target subject (CASCADE on delete) |
+| `file_name` | `text` | NOT NULL | — | Original filename |
+| `file_hash` | `text` | NOT NULL | — | Content hash for dedup |
+| `imported_at` | `timestamptz` | NOT NULL | `now()` | Import timestamp |
+| `parser_version` | `text` | NOT NULL | — | Parser version used |
+
+**Indexes:** `content_sources_subject_hash_idx` (unique on `subject_id`, `file_hash`)
+
+**Relationships:**
+- `board_id` → `boards.id` (CASCADE)
+- `subject_id` → `subjects.id` (CASCADE)
+- Referenced by: `chapters`, `exercises`
+
+### chapters
+
+Curriculum chapters within a subject. Supports markdown summaries and publish workflow.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `serial` | PK | auto-increment | Chapter identifier |
+| `subject_id` | `integer` (FK → subjects.id) | NOT NULL | — | Parent subject (CASCADE on delete) |
+| `chapter_number` | `integer` | NOT NULL | — | Ordering number |
+| `title` | `text` | NOT NULL | — | Chapter title |
+| `slug` | `text` | NOT NULL | — | URL-safe slug |
+| `summary` | `text` | NOT NULL | — | Rich text / markdown summary |
+| `is_published` | `boolean` | NOT NULL | `false` | Publish flag |
+| `source_id` | `uuid` (FK → content_sources.id) | NULL | — | Import source (SET NULL on delete) |
+
+**Indexes:**
+- `chapters_subject_slug_idx` (unique on `subject_id`, `slug`)
+- `chapters_subject_chapter_number_idx` (unique on `subject_id`, `chapter_number`)
+
+**Relationships:**
+- `subject_id` → `subjects.id` (CASCADE)
+- `source_id` → `content_sources.id` (SET NULL)
+- Referenced by: `exercises`, `flashcards`, `quizzes`, `quiz_questions`, `ai_chat_sessions`, `forum_threads`, `user_progress`, `chapter_summary_links`, `chapter_title_aliases`, `chapter_summary_media`
+
+<Tip>
+  Chapters are the central hub of the curriculum. Most domain tables reference `chapters.id` as their scope boundary.
+</Tip>
+
+### chapter_summary_links
+
+Wiki-style cross-reference links parsed from chapter summaries. Used for the chapter graph visualization.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `uuid` | PK | `gen_random_uuid()` | Link identifier |
+| `source_chapter_id` | `integer` (FK → chapters.id) | NOT NULL | — | Source chapter (CASCADE on delete) |
+| `target_chapter_id` | `integer` (FK → chapters.id) | NULL | — | Resolved target (SET NULL on delete) |
+| `target_title` | `text` | NOT NULL | — | Raw target title from wiki-link |
+| `normalized_target` | `text` | NOT NULL | — | Normalized title for matching |
+| `is_resolved` | `boolean` | NOT NULL | `false` | Whether target_chapter_id is set |
+| `created_at` | `timestamptz` | NOT NULL | `now()` | Creation time |
+| `updated_at` | `timestamptz` | NOT NULL | `now()` | Last update |
+
+**Indexes:**
+- `chapter_summary_links_source_normalized_idx` (unique on `source_chapter_id`, `normalized_target`)
+- `chapter_summary_links_source_idx`
+- `chapter_summary_links_target_idx`
+- `chapter_summary_links_normalized_idx`
+
+**Relationships:**
+- `source_chapter_id` → `chapters.id` (CASCADE)
+- `target_chapter_id` → `chapters.id` (SET NULL)
+
+### chapter_title_aliases
+
+Alternative titles for chapters used during wiki-link resolution. Supports fuzzy matching of chapter references.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `serial` | PK | auto-increment | Alias identifier |
+| `chapter_id` | `integer` (FK → chapters.id) | NOT NULL | — | Parent chapter (CASCADE on delete) |
+| `alias_title` | `text` | NOT NULL | — | Alternative title |
+| `normalized_alias` | `text` | NOT NULL | — | Lowercased/normalized form |
+| `created_at` | `timestamptz` | NOT NULL | `now()` | Creation time |
+
+**Indexes:**
+- `chapter_title_aliases_chapter_normalized_idx` (unique on `chapter_id`, `normalized_alias`)
+- `chapter_title_aliases_normalized_idx`
+
+**Relationships:**
+- `chapter_id` → `chapters.id` (CASCADE)
+
+### chapter_summary_media
+
+Media files (images, diagrams) attached to chapter summaries, stored in MinIO.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `uuid` | PK | `gen_random_uuid()` | Media identifier |
+| `chapter_id` | `integer` (FK → chapters.id) | NOT NULL | — | Parent chapter (CASCADE on delete) |
+| `object_key` | `text` | NOT NULL | — | MinIO object key |
+| `object_url` | `text` | NOT NULL | — | Accessible URL |
+| `mime_type` | `text` | NOT NULL | — | MIME type (e.g., `image/png`) |
+| `file_size` | `integer` | NOT NULL | — | Size in bytes |
+| `uploaded_by` | `text` (FK → user.id) | NOT NULL | — | Uploader (CASCADE on delete) |
+| `created_at` | `timestamptz` | NOT NULL | `now()` | Upload time |
+
+**Indexes:**
+- `chapter_summary_media_object_key_idx` (unique on `object_key`)
+- `chapter_summary_media_chapter_created_at_idx` (on `chapter_id`, `created_at`)
+
+**Relationships:**
+- `chapter_id` → `chapters.id` (CASCADE)
+- `uploaded_by` → `user.id` (CASCADE)
+
+</Accordion>
+
+<Accordion title="Assessment Domain (5 tables)">
+
+### exercises
+
+Textbook exercises with questions and step-by-step solutions.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `serial` | PK | auto-increment | Exercise identifier |
+| `chapter_id` | `integer` (FK → chapters.id) | NOT NULL | — | Parent chapter (CASCADE on delete) |
+| `exercise_number` | `text` | NOT NULL | — | Exercise label (e.g., "1.1", "1.2a") |
+| `question` | `text` | NOT NULL | — | Problem statement |
+| `solution` | `text` | NOT NULL | — | Step-by-step solution (markdown) |
+| `difficulty` | `difficulty` | NOT NULL | `medium` | `easy`, `medium`, or `hard` |
+| `type` | `exercise_type` | NOT NULL | `short` | `mcq`, `short`, `long`, or `numerical` |
+| `source_id` | `uuid` (FK → content_sources.id) | NULL | — | Import source (SET NULL on delete) |
+
+**Indexes:** `exercises_chapter_exercise_number_idx` (unique on `chapter_id`, `exercise_number`)
+
+**Relationships:**
+- `chapter_id` → `chapters.id` (CASCADE)
+- `source_id` → `content_sources.id` (SET NULL)
+
+### flashcards
+
+Spaced-repetition flashcards for concept review within a chapter.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `serial` | PK | auto-increment | Flashcard identifier |
+| `chapter_id` | `integer` (FK → chapters.id) | NOT NULL | — | Parent chapter (CASCADE on delete) |
+| `front` | `text` | NOT NULL | — | Term or concept prompt |
+| `back` | `text` | NOT NULL | — | Definition or explanation |
+| `order_index` | `integer` | NOT NULL | — | Display order within chapter |
+
+**Relationships:**
+- `chapter_id` → `chapters.id` (CASCADE)
+
+### quizzes
+
+Quiz containers that hold multiple-choice questions. Supports chapter quizzes and mock exams.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `serial` | PK | auto-increment | Quiz identifier |
+| `chapter_id` | `integer` (FK → chapters.id) | NOT NULL | — | Parent chapter (CASCADE on delete) |
+| `title` | `text` | NOT NULL | — | Quiz title |
+| `duration_minutes` | `integer` | NOT NULL | `30` | Time limit in minutes |
+| `total_marks` | `integer` | NOT NULL | — | Maximum possible score |
+| `type` | `quiz_type` | NOT NULL | `chapter_quiz` | `chapter_quiz` or `mock_exam` |
+
+**Relationships:**
+- `chapter_id` → `chapters.id` (CASCADE)
+- Referenced by: `quiz_questions`, `quiz_attempts`, `mock_exams`
+
+### quiz_questions
+
+Individual MCQ questions belonging to a quiz.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `serial` | PK | auto-increment | Question identifier |
+| `quiz_id` | `integer` (FK → quizzes.id) | NOT NULL | — | Parent quiz (CASCADE on delete) |
+| `chapter_id` | `integer` (FK → chapters.id) | NULL | — | Associated chapter (SET NULL on delete) |
+| `question` | `text` | NOT NULL | — | Question text |
+| `option_a` | `text` | NOT NULL | — | Option A |
+| `option_b` | `text` | NOT NULL | — | Option B |
+| `option_c` | `text` | NOT NULL | — | Option C |
+| `option_d` | `text` | NOT NULL | — | Option D |
+| `correct_option` | `answer_option` | NOT NULL | — | `a`, `b`, `c`, or `d` |
+| `explanation` | `text` | NOT NULL | — | Explanation shown after answering |
+| `marks` | `integer` | NOT NULL | `1` | Marks awarded for correct answer |
+
+**Relationships:**
+- `quiz_id` → `quizzes.id` (CASCADE)
+- `chapter_id` → `chapters.id` (SET NULL)
+
+### quiz_attempts
+
+Student quiz submissions with scored answers and timing.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `uuid` | PK | `gen_random_uuid()` | Attempt identifier |
+| `user_id` | `text` (FK → user.id) | NOT NULL | — | Student (CASCADE on delete) |
+| `quiz_id` | `integer` (FK → quizzes.id) | NOT NULL | — | Quiz taken (CASCADE on delete) |
+| `type` | `quiz_type` | NOT NULL | `chapter_quiz` | Quiz type at time of attempt |
+| `answers` | `jsonb` | NOT NULL | — | `{ questionId: selectedOption }` |
+| `score` | `integer` | NOT NULL | — | Points earned |
+| `total_marks` | `integer` | NOT NULL | — | Maximum possible |
+| `started_at` | `timestamptz` | NOT NULL | `now()` | Attempt start time |
+| `completed_at` | `timestamptz` | NOT NULL | `now()` | Attempt end time |
+
+**Relationships:**
+- `user_id` → `user.id` (CASCADE)
+- `quiz_id` → `quizzes.id` (CASCADE)
+
+<Note>
+  The `answers` column stores a JSON object mapping question IDs to selected options (e.g., `{"1": "b", "2": "a"}`). This schema-less approach allows flexible answer storage without a junction table.
+</Note>
+
+</Accordion>
+
+<Accordion title="AI Domain (3 tables)">
+
+### ai_chat_sessions
+
+Conversation threads between a student and the AI tutor, optionally scoped to a chapter.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `uuid` | PK | `gen_random_uuid()` | Session identifier |
+| `user_id` | `text` (FK → user.id) | NOT NULL | — | Student (CASCADE on delete) |
+| `chapter_id` | `integer` (FK → chapters.id) | NULL | — | Context chapter (SET NULL on delete) |
+| `title` | `text` | NOT NULL | — | Auto-generated session title |
+| `created_at` | `timestamptz` | NOT NULL | `now()` | Session creation |
+| `last_message_at` | `timestamptz` | NOT NULL | `now()` | Last activity timestamp |
+
+**Relationships:**
+- `user_id` → `user.id` (CASCADE)
+- `chapter_id` → `chapters.id` (SET NULL)
+- Referenced by: `ai_messages`, `ai_usage_logs`
+
+### ai_messages
+
+Individual messages within an AI chat session.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `uuid` | PK | `gen_random_uuid()` | Message identifier |
+| `session_id` | `uuid` (FK → ai_chat_sessions.id) | NOT NULL | — | Parent session (CASCADE on delete) |
+| `role` | `ai_message_role` | NOT NULL | — | `user` or `assistant` |
+| `content` | `text` | NOT NULL | — | Message body |
+| `created_at` | `timestamptz` | NOT NULL | `now()` | Timestamp |
+
+**Relationships:**
+- `session_id` → `ai_chat_sessions.id` (CASCADE)
+
+### ai_usage_logs
+
+Token consumption tracking for AI model usage analytics and rate limiting.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `uuid` | PK | `gen_random_uuid()` | Log identifier |
+| `user_id` | `text` (FK → user.id) | NOT NULL | — | Student (CASCADE on delete) |
+| `session_id` | `uuid` (FK → ai_chat_sessions.id) | NOT NULL | — | Chat session (CASCADE on delete) |
+| `model` | `text` | NOT NULL | — | Model name (e.g., `mistral-small`) |
+| `prompt_tokens` | `integer` | NOT NULL | — | Input tokens consumed |
+| `completion_tokens` | `integer` | NOT NULL | — | Output tokens generated |
+| `created_at` | `timestamptz` | NOT NULL | `now()` | Log timestamp |
+
+**Relationships:**
+- `user_id` → `user.id` (CASCADE)
+- `session_id` → `ai_chat_sessions.id` (CASCADE)
+
+</Accordion>
+
+<Accordion title="Forum Domain (3 tables)">
+
+### forum_threads
+
+Discussion threads with full-text search support. Scoped optionally to a subject or chapter.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `uuid` | PK | `gen_random_uuid()` | Thread identifier |
+| `user_id` | `text` (FK → user.id) | NOT NULL | — | Author (CASCADE on delete) |
+| `subject_id` | `integer` (FK → subjects.id) | NULL | — | Related subject (SET NULL on delete) |
+| `chapter_id` | `integer` (FK → chapters.id) | NULL | — | Related chapter (SET NULL on delete) |
+| `title` | `text` | NOT NULL | — | Thread title |
+| `body` | `text` | NOT NULL | — | Thread body (markdown) |
+| `is_pinned` | `boolean` | NOT NULL | `false` | Pinned by admin |
+| `is_solved` | `boolean` | NOT NULL | `false` | Accepted answer exists |
+| `views` | `integer` | NOT NULL | `0` | View count |
+| `created_at` | `timestamptz` | NOT NULL | `now()` | Creation time |
+| `updated_at` | `timestamptz` | NOT NULL | `now()` | Last edit time |
+
+**Indexes:** `forum_threads_search_idx` — GIN index on `to_tsvector('english', title || ' ' || body)` for full-text search.
+
+**Relationships:**
+- `user_id` → `user.id` (CASCADE)
+- `subject_id` → `subjects.id` (SET NULL)
+- `chapter_id` → `chapters.id` (SET NULL)
+- Referenced by: `forum_replies`, `moderation_flags`
+
+### forum_replies
+
+Threaded replies with self-referential nesting for nested conversations.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `uuid` | PK | `gen_random_uuid()` | Reply identifier |
+| `thread_id` | `uuid` (FK → forum_threads.id) | NOT NULL | — | Parent thread (CASCADE on delete) |
+| `user_id` | `text` (FK → user.id) | NOT NULL | — | Author (CASCADE on delete) |
+| `parent_reply_id` | `uuid` (FK → forum_replies.id) | NULL | — | Parent reply for nesting (SET NULL on delete) |
+| `body` | `text` | NOT NULL | — | Reply body (markdown) |
+| `is_accepted_answer` | `boolean` | NOT NULL | `false` | Marked as answer by thread author |
+| `upvotes` | `integer` | NOT NULL | `0` | Cached upvote count |
+| `created_at` | `timestamptz` | NOT NULL | `now()` | Creation time |
+| `updated_at` | `timestamptz` | NOT NULL | `now()` | Last edit time |
+
+**Relationships:**
+- `thread_id` → `forum_threads.id` (CASCADE)
+- `user_id` → `user.id` (CASCADE)
+- `parent_reply_id` → `forum_replies.id` (self-referential, SET NULL)
+- Referenced by: `forum_reply_votes`, `moderation_flags`
+
+### forum_reply_votes
+
+Per-user vote records on forum replies. Enforces one vote per user per reply.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `uuid` | PK | `gen_random_uuid()` | Vote identifier |
+| `user_id` | `text` (FK → user.id) | NOT NULL | — | Voter (CASCADE on delete) |
+| `reply_id` | `uuid` (FK → forum_replies.id) | NOT NULL | — | Target reply (CASCADE on delete) |
+| `vote_type` | `vote_type` | NOT NULL | — | `upvote` or `downvote` |
+| `created_at` | `timestamptz` | NOT NULL | `now()` | Vote time |
+
+**Indexes:** `forum_reply_votes_user_reply_idx` (unique on `user_id`, `reply_id`)
+
+**Relationships:**
+- `user_id` → `user.id` (CASCADE)
+- `reply_id` → `forum_replies.id` (CASCADE)
+
+<Warning>
+  The `forum_replies.upvotes` column is a cached counter. The application must update it atomically when votes change to avoid N+1 query overhead.
+</Warning>
+
+</Accordion>
+
+<Accordion title="Progress Domain (1 table)">
+
+### user_progress
+
+Per-student, per-chapter progress tracking. One row per student-chapter pair.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `serial` | PK | auto-increment | Progress identifier |
+| `user_id` | `text` (FK → user.id) | NOT NULL | — | Student (CASCADE on delete) |
+| `chapter_id` | `integer` (FK → chapters.id) | NOT NULL | — | Chapter (CASCADE on delete) |
+| `visited_at` | `timestamptz` | NOT NULL | `now()` | Last visit timestamp |
+| `exercises_viewed` | `integer` | NOT NULL | `0` | Number of exercises viewed |
+| `flashcards_completed` | `boolean` | NOT NULL | `false` | Deck completion flag |
+| `quiz_best_score` | `integer` | NOT NULL | `0` | Best quiz score achieved |
+| `quiz_attempts_count` | `integer` | NOT NULL | `0` | Total quiz attempts |
+
+**Indexes:** `user_progress_user_chapter_idx` (unique on `user_id`, `chapter_id`)
+
+**Relationships:**
+- `user_id` → `user.id` (CASCADE)
+- `chapter_id` → `chapters.id` (CASCADE)
+
+<Tip>
+  This table is the backbone of the dashboard and stats features. The unique constraint on `(user_id, chapter_id)` enables upsert-based progress updates.
+</Tip>
+
+</Accordion>
+
+<Accordion title="Admin Domain (4 tables)">
+
+### moderation_flags
+
+Content moderation reports for forum threads, replies, or chapters.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `uuid` | PK | `gen_random_uuid()` | Flag identifier |
+| `created_at` | `timestamptz` | NOT NULL | `now()` | Report time |
+| `target_type` | `moderation_target_type` | NOT NULL | — | `thread`, `reply`, or `chapter` |
+| `target_id` | `text` | NOT NULL | — | Target resource ID |
+| `target_label` | `text` | NOT NULL | — | Display label for admin UI |
+| `reason` | `text` | NOT NULL | — | Report reason |
+| `status` | `moderation_status` | NOT NULL | `open` | `open` or `resolved` |
+| `resolved_by` | `text` (FK → user.id) | NULL | — | Admin who resolved (SET NULL on delete) |
+| `resolved_at` | `timestamptz` | NULL | — | Resolution timestamp |
+| `resolution_note` | `text` | NULL | — | Admin resolution notes |
+
+**Indexes:** `moderation_flags_status_target_type_created_at_idx` (on `status`, `target_type`, `created_at`)
+
+**Relationships:**
+- `resolved_by` → `user.id` (SET NULL)
+
+<Note>
+  The `target_id` is stored as `text` to support polymorphic references to `forum_threads` (uuid), `forum_replies` (uuid), or `chapters` (integer). The `target_type` enum disambiguates the target table.
+</Note>
+
+### admin_audit_logs
+
+Immutable audit trail for all admin actions across the platform.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `uuid` | PK | `gen_random_uuid()` | Log identifier |
+| `scope` | `admin_audit_scope` | NOT NULL | — | Action domain |
+| `action` | `text` | NOT NULL | — | Action performed (e.g., `user.suspend`) |
+| `target` | `text` | NOT NULL | — | Target resource identifier |
+| `status` | `admin_audit_status` | NOT NULL | — | `success` or `failed` |
+| `message` | `text` | NOT NULL | — | Human-readable description |
+| `actor_id` | `text` (FK → user.id) | NULL | — | Admin who performed the action (SET NULL on delete) |
+| `actor_name` | `text` | NOT NULL | — | Admin display name (denormalized) |
+| `created_at` | `timestamptz` | NOT NULL | `now()` | Timestamp |
+
+**Indexes:** `admin_audit_logs_scope_created_at_idx` (on `scope`, `created_at`)
+
+**Relationships:**
+- `actor_id` → `user.id` (SET NULL)
+
+### admin_notifications
+
+Broadcast notifications sent to users by admins.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `uuid` | PK | `gen_random_uuid()` | Notification identifier |
+| `title` | `text` | NOT NULL | — | Notification title |
+| `message` | `text` | NOT NULL | — | Notification body |
+| `audience` | `notification_audience` | NOT NULL | — | `all`, `students`, or `admins` |
+| `status` | `notification_status` | NOT NULL | `sent` | Current status |
+| `created_by` | `text` (FK → user.id) | NOT NULL | — | Admin author (RESTRICT on delete) |
+| `created_at` | `timestamptz` | NOT NULL | `now()` | Send time |
+
+**Indexes:** `admin_notifications_created_at_idx` (on `created_at`)
+
+**Relationships:**
+- `created_by` → `user.id` (RESTRICT — prevents deleting an admin who sent notifications)
+
+<Warning>
+  The `created_by` foreign key uses `onDelete: "restrict"`, not cascade or null. An admin account with sent notifications cannot be deleted until the notifications are reassigned or removed.
+</Warning>
+
+### admin_settings
+
+Key-value configuration store for platform-wide settings.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `key` | `text` | PK | — | Setting key |
+| `value` | `text` | NOT NULL | — | Setting value |
+| `description` | `text` | NOT NULL | — | Human-readable description |
+| `updated_by` | `text` (FK → user.id) | NULL | — | Last editor (SET NULL on delete) |
+| `updated_at` | `timestamptz` | NOT NULL | `now()` | Last update time |
+
+**Indexes:** `admin_settings_updated_at_idx` (on `updated_at`)
+
+**Relationships:**
+- `updated_by` → `user.id` (SET NULL)
+
+</Accordion>
+
+<Accordion title="Planner Domain (2 tables)">
+
+### mock_exams
+
+Past paper mock exams linked to quizzes for question delivery.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `serial` | PK | auto-increment | Exam identifier |
+| `board_id` | `integer` (FK → boards.id) | NOT NULL | — | Education board (CASCADE on delete) |
+| `grade` | `grade` | NOT NULL | — | Grade 9 or 10 |
+| `subject_id` | `integer` (FK → subjects.id) | NOT NULL | — | Subject (CASCADE on delete) |
+| `quiz_id` | `integer` (FK → quizzes.id) | NOT NULL | — | Underlying quiz (CASCADE on delete) |
+| `title` | `text` | NOT NULL | — | Exam title (e.g., "Mathematics 2023") |
+| `year` | `integer` | NOT NULL | — | Exam year |
+| `duration_minutes` | `integer` | NOT NULL | — | Time limit |
+| `total_marks` | `integer` | NOT NULL | — | Maximum score |
+
+**Relationships:**
+- `board_id` → `boards.id` (CASCADE)
+- `subject_id` → `subjects.id` (CASCADE)
+- `quiz_id` → `quizzes.id` (CASCADE)
+
+<Tip>
+  Mock exams reuse the `quizzes` and `quiz_questions` tables. The `quiz_attempts` table records student performance on mock exams the same way as chapter quizzes, with `type: "mock_exam"`.
+</Tip>
+
+### institutes
+
+Institution registry (reserved for future multi-tenant features).
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | `serial` | PK | auto-increment | Institute identifier |
+| `name` | `text` | NOT NULL | — | Institute name |
+
+</Accordion>
+</AccordionGroup>
+
+---
+
+## Entity-Relationship Summary
+
+```text
+boards ─┬── board_classes
+        └── subjects ──┬── chapters ──┬── exercises
+                       │              ├── flashcards
+                       │              ├── quizzes ──┬── quiz_questions
+                       │              │            └── quiz_attempts ← user
+                       │              ├── ai_chat_sessions ──┬── ai_messages
+                       │              │                      └── ai_usage_logs
+                       │              ├── forum_threads ── forum_replies ── forum_reply_votes
+                       │              ├── user_progress ← user
+                       │              ├── chapter_summary_links (self-referential on chapters)
+                       │              ├── chapter_title_aliases
+                       │              └── chapter_summary_media ← user
+                       └── content_sources
+
+user ──┬── session
+       ├── account
+       ├── verification
+       ├── moderation_flags
+       ├── admin_audit_logs
+       ├── admin_notifications
+       └── admin_settings
+```
+
+## Migration Workflow
+
+LearningoPK uses Drizzle Kit for schema migrations against PostgreSQL.
+
+<Tabs>
+<Tab title="Generate Migration">
+
+After modifying `backend/src/lib/db/schema.ts`, generate a migration file:
+
+```bash
+# From project root
+pnpm db:generate
+
+# Or from backend directory
+pnpm drizzle-kit generate
+```
+
+This creates a SQL migration file in `backend/src/lib/db/migrations/` containing the diff between the current schema and the previous migration.
+
+<Note>
+  Always review the generated SQL before applying. Drizzle Kit generates `ALTER TABLE`, `CREATE TABLE`, and `DROP` statements based on schema changes.
+</Note>
+
+</Tab>
+<Tab title="Apply Migration">
+
+Run pending migrations against the database:
+
+```bash
+# From project root
+pnpm db:migrate
+
+# Or from backend directory
+pnpm drizzle-kit migrate
+```
+
+Migrations run in order and are tracked in the `__drizzle_migrations` table. Each migration is applied exactly once.
+
+<Warning>
+  Never modify a migration file after it has been applied to a shared database. Create a new migration instead.
+</Warning>
+
+</Tab>
+<Tab title="Push (Dev Only)">
+
+For rapid development iteration, push schema changes directly without a migration file:
+
+```bash
+pnpm drizzle-kit push
+```
+
+<Warning>
+  `push` is destructive and should **never** be used on production or shared databases. It drops and recreates columns/tables to match the schema.
+</Warning>
+
+</Tab>
+<Tab title="Inspect Schema">
+
+Open Drizzle Studio to browse the database visually:
+
+```bash
+pnpm drizzle-kit studio
+```
+
+This launches a local web UI at `http://localhost:4983` for inspecting tables, data, and relationships.
+
+</Tab>
+</Tabs>
+
+### Migration Best Practices
+
+1. **One change per migration** — Keep migrations atomic and focused
+2. **Review generated SQL** — Check for unintended `DROP COLUMN` or `DROP TABLE` statements
+3. **Never edit applied migrations** — Create a new migration to fix issues
+4. **Seed after migrate** — Run `pnpm db:seed` after migrations that add required reference data
+5. **Back up before destructive changes** — Use `pg_dump` before column renames or type changes
+
+### Environment Setup
+
+| Requirement | Details |
+|-------------|---------|
+| PostgreSQL | Version 16, port `5433` (via Docker) |
+| Connection | `DATABASE_URL` in `backend/.env` |
+| Docker | `pnpm docker:up` starts PostgreSQL + Redis |
+| Drizzle config | `backend/drizzle.config.ts` |
+| Schema file | `backend/src/lib/db/schema.ts` |
+| Migrations dir | `backend/src/lib/db/migrations/` |

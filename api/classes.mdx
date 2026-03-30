@@ -1,0 +1,85 @@
+---
+title: Classes API
+description: Retrieve the list of classes (grades) available across all boards.
+---
+
+## Overview
+
+The Classes API returns all board-class (grade) combinations configured in the system. Each class belongs to a specific board and contains subjects.
+
+---
+
+## List classes
+
+Returns all classes ordered alphabetically by name.
+
+```bash
+GET /api/classes
+```
+
+**Auth**: None (public endpoint)
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl http://localhost:3001/api/classes
+```
+
+</CodeGroup>
+
+### Response
+
+**Status**: `200 OK`
+
+```json
+{
+  "classes": [
+    {
+      "id": 1,
+      "boardId": 1,
+      "name": "Class 10",
+      "slug": "class-10"
+    },
+    {
+      "id": 2,
+      "boardId": 1,
+      "name": "Class 11",
+      "slug": "class-11"
+    }
+  ]
+}
+```
+
+<ResponseField name="classes" type="array" required>
+  Array of class objects.
+
+  <Expandable title="class object">
+    <ResponseField name="id" type="number" required>
+      Unique class identifier.
+    </ResponseField>
+
+    <ResponseField name="boardId" type="number" required>
+      ID of the parent board this class belongs to.
+    </ResponseField>
+
+    <ResponseField name="name" type="string" required>
+      Display name of the class (e.g., `"Class 10"`).
+    </ResponseField>
+
+    <ResponseField name="slug" type="string" required>
+      URL-safe slug used in curriculum routes (e.g., `"class-10"`).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<Note>
+Use the `boardId` field to filter classes for a specific board on the client side.
+</Note>
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `500` | Database error — failed to fetch classes |

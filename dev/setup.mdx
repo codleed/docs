@@ -1,0 +1,107 @@
+---
+title: "Development Setup"
+description: "Set up your local development environment for contributing to LearningoPK"
+---
+
+## Prerequisites
+
+- **Node.js** v20+
+- **pnpm** v10+ (`npm i -g pnpm`)
+- **Docker** and **Docker Compose**
+- **Git**
+
+## Getting Started
+
+1. **Clone the repository**
+
+```bash
+git clone https://github.com/Codleed/learningopk.git
+cd learningopk/learningopk
+```
+
+2. **Install dependencies**
+
+```bash
+pnpm install
+```
+
+3. **Start infrastructure**
+
+```bash
+pnpm docker:up
+```
+
+4. **Configure environment**
+
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.local.example frontend/.env.local
+```
+
+Edit `backend/.env` and add your `MISTRAL_API_KEY`.
+
+5. **Run migrations**
+
+```bash
+pnpm db:migrate
+```
+
+6. **Start development servers**
+
+```bash
+pnpm dev:all
+```
+
+## Monorepo Structure
+
+```
+learningopk/
+├── frontend/              # Next.js 16 App Router
+├── backend/               # Express.js 5 API
+├── packages/
+│   └── shared/            # Shared types and validators
+├── infra/                 # Docker and Nginx config
+├── docker-compose.yml
+├── drizzle.config.ts
+└── package.json           # Root workspace scripts
+```
+
+## Code Style
+
+### TypeScript
+
+- **Strict mode** enabled — no `any` types
+- Use `unknown` or proper generics instead
+- ES Modules with `.js` extensions in imports
+
+### Naming Conventions
+
+| Type | Convention | Example |
+|------|-----------|---------|
+| Routes | kebab-case | `ai-chat.ts` |
+| Services | camelCase | `quiz.service.ts` |
+| DB tables | snake_case | `user_progress` |
+| Zod schemas | CamelCase + Schema | `CreateQuizSchema` |
+
+### Frontend
+
+- Use `@/components/ui` for all UI components (Button, Card, Badge, Input)
+- Components follow 4px spacing grid
+- Tailwind CSS for all styling
+
+### Backend
+
+- Use `successResponse` and `errorResponse` from `src/lib/response.ts`
+- Never interpolate user input in database queries
+- Use Drizzle ORM for all database operations
+
+## Root Scripts
+
+| Script | Description |
+|--------|-------------|
+| `pnpm dev:all` | Start frontend + backend |
+| `pnpm lint` | Lint all packages |
+| `pnpm typecheck` | TypeScript check all packages |
+| `pnpm db:migrate` | Run Drizzle migrations |
+| `pnpm db:seed` | Seed sample content |
+| `pnpm db:studio` | Open Drizzle Studio |

@@ -1,0 +1,205 @@
+---
+title: AI Chat API
+description: Socratic AI tutor powered by Mistral with streaming responses, session management, and safety guardrails.
+---
+
+## Overview
+
+The AI Chat API provides an interactive Socratic tutor powered by **Mistral AI** via the Vercel AI SDK. Instead of giving direct answers, the AI guides students through problems by asking questions.
+
+Responses are streamed as plain text chunks. The frontend uses the `x-ai-session-id` response header to track the session.
+
+<Warning>
+All AI chat endpoints require authentication. The AI chat endpoint is rate-limited per user.
+</Warning>
+
+---
+
+## List chat sessions
+
+Retrieve all general (non-chapter) chat sessions for the authenticated user.
+
+```bash
+GET /api/ai-chat/sessions
+```
+
+**Auth**: Student
+
+### Response
+
+```json
+{
+  "sessions": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "title": "Physics: Physical Quantities and Measurement",
+      "lastMessageAt": "2026-03-28T14:30:00.000Z"
+    },
+    {
+      "id": "660e8400-e29b-41d4-a716-446655440001",
+      "title": "How to solve quadratic equations",
+      "lastMessageAt": "2026-03-27T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+Sessions are ordered by `lastMessageAt` descending.
+
+---
+
+## Get session messages
+
+Retrieve all messages in a specific chat session.
+
+```bash
+GET /api/ai-chat/sessions/:sessionId/messages
+```
+
+**Auth**: Student
+
+### Path parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `sessionId` | string (UUID) | The chat session ID |
+
+### Response
+
+```json
+{
+  "session": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "title": "Physics: Physical Quantities and Measurement",
+    "lastMessageAt": "2026-03-28T14:30:00.000Z"
+  },
+  "messages": [
+    {
+      "id": 1,
+      "role": "user",
+      "content": "What is the difference between speed and velocity?",
+      "createdAt": "2026-03-28T14:25:00.000Z"
+    },
+    {
+      "id": 2,
+      "role": "assistant",
+      "content": "Great question! Let me ask you this — if you walk 5 meters forward and then 5 meters back, what would your speed be? And what about your velocity?",
+      "createdAt": "2026-03-28T14:25:03.000Z"
+    }
+  ]
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid session ID (not a valid UUID) |
+| `404` | Session not found or does not belong to the user |
+
+---
+
+## Send chat message
+
+Send a message to the AI tutor and receive a streamed response. This endpoint creates a new session if `sessionId` is not provided.
+
+```bash
+POST /api/ai-chat/chat
+```
+
+**Auth**: Student
+
+<Warning>
+This endpoint is rate-limited per user. Check the `x-ratelimit-*` response headers for your current usage.
+</Warning>
+
+### Request body
+
+<ResponseField name="messages" type="array" required>
+  Array of conversation messages. Must include at least one message with `role: "user"`.
+  
+  Each message has:
+  - `role`: `"user"` or `"assistant"`
+  - `content`: string (1–4000 characters)
+  
+  Maximum 40 messages per request.
+</ResponseField>
+
+<ResponseField name="chapterId" type="number">
+  Optional chapter ID to inject chapter context into the AI prompt. When provided, the AI tutor focuses on that chapter's content and exercises.
+</ResponseField>
+
+<ResponseField name="sessionId" type="string">
+  Optional UUID of an existing session to continue the conversation. If omitted, a new session is created.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:3001/api/ai-chat/chat \
+  -H "Content-Type: application/json" \
+  -H "Cookie: better-auth.session_token=..." \
+  -d '{
+    "messages": [
+      { "role": "user", "content": "Can you help me understand Newton'"'"'s first law?" }
+    ],
+    "chapterId": 5
+  }'
+```
+
+</CodeGroup>
+
+### Response
+
+The response is streamed as `text/plain; charset=utf-8`. Each chunk is a portion of the AI's response text.
+
+**Response headers**:
+
+| Header | Description |
+|--------|-------------|
+| `x-ai-session-id` | UUID of the session (new or existing) |
+| `x-ratelimit-limit` | Maximum requests allowed |
+| `x-ratelimit-remaining` | Requests remaining |
+| `x-ratelimit-reset` | Seconds until rate limit resets |
+| `content-type` | `text/plain; charset=utf-8` |
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid payload — malformed messages array or missing user message |
+| `404` | Chapter not found (when `chapterId` provided) or session not found |
+| `422` | Message blocked by AI safety checks (content moderation) |
+| `429` | Rate limit exceeded — check `retry-after` header |
+| `502` | Failed to stream from Mistral provider |
+| `503` | Mistral API key not configured or rate limit service unavailable |
+
+### Safety guardrails
+
+The AI chat includes the following safety measures:
+
+- **Input moderation** — messages are checked for inappropriate content before being sent to the model
+- **Rate limiting** — per-user rate limits prevent abuse
+- **Socratic method** — the system prompt instructs the AI to guide students through questions, not give direct answers
+- **Context injection** — when a `chapterId` is provided, the AI receives chapter content and related exercise questions for focused tutoring
+
+<Accordion title="Rate limit response example">
+
+```json
+{
+  "error": "AI chat rate limit exceeded.",
+  "retryAfterSeconds": 120
+}
+```
+
+Headers:
+```
+x-ratelimit-limit: 50
+x-ratelimit-remaining: 0
+x-ratelimit-reset: 120
+retry-after: 120
+```
+
+</Accordion>

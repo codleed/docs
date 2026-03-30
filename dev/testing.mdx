@@ -1,0 +1,110 @@
+---
+title: "Testing"
+description: "Unit, integration, and end-to-end testing guide"
+---
+
+## Overview
+
+LearningoPK uses three levels of testing:
+
+- **Unit tests** — Test functions in isolation
+- **Integration tests** — Test API routes with database interaction
+- **E2E tests** — Test full user flows in a browser
+
+## Backend Tests
+
+Located in `backend/src/tests/`.
+
+### Running Tests
+
+```bash
+# All tests
+pnpm --filter backend test
+
+# Unit tests only
+pnpm --filter backend test:unit
+
+# Integration tests only
+pnpm --filter backend test:integration
+
+# Single test file
+pnpm --filter backend test src/tests/unit/validators.unit.test.ts
+```
+
+### Test Runner
+
+Backend tests use the **Node.js built-in test runner** with `node:test` and `node:assert`.
+
+### Structure
+
+```
+backend/src/tests/
+├── unit/              # *.unit.test.ts
+│   └── validators.unit.test.ts
+└── integration/       # *.integration.test.ts
+    └── auth.integration.test.ts
+```
+
+## Frontend E2E Tests
+
+Located in `frontend/tests/e2e/`.
+
+### Running Tests
+
+```bash
+# All E2E tests
+pnpm --filter frontend test:e2e
+
+# Smoke tests only
+pnpm --filter frontend test:e2e:smoke
+
+# Single test file
+pnpm --filter frontend test:e2e tests/e2e/smoke.spec.ts
+```
+
+### Test Framework
+
+Frontend tests use **Playwright** for browser-based testing.
+
+## Verification Scripts
+
+Backend includes verification scripts for quick service checks:
+
+```bash
+pnpm --filter backend healthcheck    # Verify services are running
+pnpm --filter backend ai:verify      # Test AI chat endpoint
+pnpm --filter backend quiz:verify    # Test quiz submission
+pnpm --filter backend auth:verify    # Test authentication
+```
+
+## Writing Tests
+
+### Unit Test Example
+
+```typescript
+import { describe, it } from "node:test";
+import assert from "node:assert";
+import { validateEmail } from "../../lib/validators.js";
+
+describe("validateEmail", () => {
+  it("should accept valid email", () => {
+    assert.strictEqual(validateEmail("user@example.com"), true);
+  });
+
+  it("should reject invalid email", () => {
+    assert.strictEqual(validateEmail("not-an-email"), false);
+  });
+});
+```
+
+### E2E Test Example
+
+```typescript
+import { test, expect } from "@playwright/test";
+
+test("student can view chapter list", async ({ page }) => {
+  await page.goto("/learn/mathematics");
+  await expect(page.locator("h1")).toContainText("Mathematics");
+  await expect(page.locator("[data-testid='chapter-card']")).toHaveCount(10);
+});
+```

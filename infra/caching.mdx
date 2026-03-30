@@ -1,0 +1,257 @@
+---
+title: "Caching Strategy"
+description: "Redis caching layer with typed keys, TTL policies, and cache-aside pattern"
+---
+
+## Overview
+
+LearningoPK uses Redis 7 as a distributed cache layer to reduce database load and improve response times. The caching system is built around a typed `CacheService` class that enforces key conventions, applies per-namespace TTLs, and provides a cache-aside `getOrSet` pattern.
+
+## Architecture
+
+```
+┌────────────┐     ┌──────────────┐     ┌───────────┐
+│   Route /   │────▶│ CacheService │────▶│   Redis   │
+│  Repository │◀────│  (getOrSet)  │◀────│   Client  │
+└────────────┘     └──────┬───────┘     └───────────┘
+                          │ miss
+                          ▼
+                   ┌──────────────┐
+                   │  factory()   │
+                   │  → DB query  │
+                   └──────────────┘
+```
+
+## Redis Connection
+
+The Redis client is initialized in `backend/src/lib/redis.ts` with lazy connection management:
+
+```typescript
+import { createClient } from "redis";
+import { env } from "./env.js";
+
+export const redis = createClient({
+  url: env.REDIS_URL
+});
+
+redis.on("error", (error) => {
+  console.error("Redis client error:", error);
+});
+
+let connectionPromise: Promise<unknown> | null = null;
+
+export const ensureRedisConnection = async (): Promise<void> => {
+  if (redis.isOpen) return;
+  if (!connectionPromise) {
+    connectionPromise = redis.connect().finally(() => {
+      connectionPromise = null;
+    });
+  }
+  await connectionPromise;
+};
+```
+
+<Note>
+The connection is lazy — Redis only connects on first use, not at process startup. The `connectionPromise` guard prevents concurrent connect calls.
+</Note>
+
+## Typed Cache Keys
+
+All cache keys follow a `namespace:id` convention. The `CacheKeys` object provides factory functions that enforce this pattern:
+
+```typescript
+export const CacheKeys = {
+  subjectList: () => "subjects:list",
+  subjectDetail: (subjectId: number) => `subjects:detail:${subjectId}`,
+  chapterContent: (chapterId: number) => `chapters:content:${chapterId}`,
+  chapterList: (subjectId: number) => `chapters:list:${subjectId}`,
+  forumThreads: (filters: Record<string, unknown>) =>
+    `forum:threads:${JSON.stringify(filters)}`,
+  forumThreadDetail: (threadId: string) => `forum:thread:${threadId}`,
+  quizQuestions: (quizId: number) => `quiz:questions:${quizId}`,
+  userProgress: (userId: string) => `user:progress:${userId}`,
+  userDashboard: (userId: string) => `user:dashboard:${userId}`
+};
+```
+
+<Tip>
+When adding a new cacheable resource, always add a factory function to `CacheKeys` rather than constructing key strings inline. This prevents key collisions and makes invalidation predictable.
+</Tip>
+
+## TTL Policies
+
+Each namespace has a default TTL defined in seconds:
+
+| Namespace | TTL | Rationale |
+|-----------|-----|-----------|
+| `subjectList` | 3600s (1h) | Changes rarely, safe to cache long |
+| `chapterContent` | 1800s (30m) | Updated occasionally by admins |
+| `forumThreads` | 300s (5m) | Dynamic content, short cache |
+| `quizQuestions` | 0 (no cache) | Must always be fresh |
+| `progress` | 0 (no cache) | Real-time user data |
+| `aiResponses` | 0 (no cache) | Non-deterministic output |
+
+```typescript
+const DEFAULT_TTL: Record<string, number> = {
+  subjectList: 3600,
+  chapterContent: 1800,
+  forumThreads: 300,
+  quizQuestions: 0,
+  progress: 0,
+  aiResponses: 0
+};
+```
+
+<Warning>
+Setting TTL to `0` disables caching for that namespace. The `set()` method returns `false` without writing to Redis when `ttl <= 0`.
+</Warning>
+
+## CacheService API
+
+The `CacheService` class in `backend/src/lib/cache/cache.service.ts` exposes five core methods:
+
+### `get<T>(key)`
+
+Retrieves and JSON-parses a cached value. Returns `null` on miss or error.
+
+```typescript
+const cached = await cacheService.get<Subject[]>("subjects:list");
+if (cached) return cached;
+```
+
+### `set<T>(key, value, options?)`
+
+Serializes and stores a value. Returns `false` if TTL is 0 or on error.
+
+```typescript
+await cacheService.set("subjects:list", subjects, { ttlSeconds: 3600 });
+```
+
+### `delete(key)`
+
+Removes a single key from Redis.
+
+```typescript
+await cacheService.delete(CacheKeys.subjectDetail(42));
+```
+
+### `invalidatePattern(pattern)`
+
+Bulk-deletes keys matching a glob pattern. Returns the number of keys removed.
+
+```typescript
+// Invalidate all chapter caches
+const removed = await cacheService.invalidatePattern("chapters:*");
+console.log(`Invalidated ${removed} keys`);
+```
+
+<Warning>
+`invalidatePattern` uses `KEYS` command which is O(N). Avoid using it on large keyspaces in production. Prefer targeted `delete()` calls when possible.
+</Warning>
+
+### `getOrSet<T>(key, factory, options?)`
+
+The primary cache-aside pattern. Checks the cache first; on miss, calls the factory function, caches the result, and returns it.
+
+```typescript
+const chapters = await cacheService.getOrSet(
+  CacheKeys.chapterList(subjectId),
+  () => learnRepository.findChaptersBySubjectId(subjectId),
+  { ttlSeconds: 1800 }
+);
+```
+
+### `buildKey(namespace, ...parts)`
+
+Utility for constructing ad-hoc keys when `CacheKeys` doesn't cover the use case.
+
+```typescript
+const key = cacheService.buildKey("admin", "stats", "daily", date);
+```
+
+## Cache-Aside Pattern
+
+The standard read flow in repositories and services:
+
+<Steps>
+<Step title="Check cache">
+Call `cacheService.get()` with a typed key.
+</Step>
+<Step title="Return cached value if hit">
+If the result is not `null`, return immediately — no database query.
+</Step>
+<Step title="Query database on miss">
+Execute the Drizzle query against PostgreSQL.
+</Step>
+<Step title="Store in cache">
+Call `cacheService.set()` with the fresh data and appropriate TTL.
+</Step>
+<Step title="Return value">
+Return the result to the caller.
+</Step>
+</Steps>
+
+The `getOrSet` method encapsulates all five steps:
+
+```typescript
+async getSubjectList(): Promise<Subject[]> {
+  return cacheService.getOrSet(
+    CacheKeys.subjectList(),
+    () => db.select().from(subjects),
+    { ttlSeconds: 3600 }
+  );
+}
+```
+
+## Invalidation Strategy
+
+Cache is invalidated when the underlying data changes:
+
+| Mutation | Invalidation |
+|----------|-------------|
+| Admin updates chapter content | `delete(CacheKeys.chapterContent(chapterId))` |
+| Admin publishes/unpublishes chapter | `invalidatePattern("chapters:*")` |
+| New forum thread created | `invalidatePattern("forum:threads:*")` |
+| Admin modifies subject list | `delete(CacheKeys.subjectList())` |
+
+<Note>
+Progress and quiz data are never cached (TTL = 0) so they do not require invalidation logic.
+</Note>
+
+## Error Handling
+
+All cache operations are wrapped in try/catch. Errors are logged but never propagate — the application degrades gracefully to direct database access:
+
+```typescript
+async get<T>(key: CacheKey): Promise<T | null> {
+  try {
+    const client = await this.getClient();
+    const value = await client.get(key);
+    if (!value) return null;
+    return JSON.parse(value) as T;
+  } catch (error) {
+    console.error(`Cache get error for key ${key}:`, error);
+    return null; // Graceful degradation
+  }
+}
+```
+
+This means Redis outages do not break the application — they only increase database load.
+
+## Unit Testing
+
+Cache keys have dedicated unit tests in `backend/src/tests/unit/repositories/cache-keys.unit.test.ts`:
+
+```bash
+pnpm --filter backend test src/tests/unit/repositories/cache-keys.unit.test.ts
+```
+
+## Environment Configuration
+
+The Redis connection URL is configured via:
+
+```env
+REDIS_URL=redis://localhost:6379
+```
+
+This is shared between the cache service, BullMQ job queues, and session storage.

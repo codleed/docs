@@ -1,0 +1,157 @@
+---
+title: "Tech stack"
+description: "Complete technology stack for LearningoPK — all free, open-source tools that run entirely on a local machine."
+---
+
+Every tool in the LearningoPK stack is free, open-source, and runs locally. No paid services are required for development or investor demonstrations.
+
+## Stack overview
+
+<CardGroup cols={2}>
+  <Card title="Frontend" icon="browser">
+    Next.js 16, React 19, Tailwind CSS 4, HeroUI
+  </Card>
+  <Card title="Backend" icon="server">
+    Express.js 5, TypeScript, Drizzle ORM
+  </Card>
+  <Card title="Database" icon="database">
+    PostgreSQL 16, Redis 7, PgBouncer
+  </Card>
+  <Card title="AI & Storage" icon="brain">
+    Mistral AI, Vercel AI SDK, MinIO
+  </Card>
+</CardGroup>
+
+## Frontend
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **Next.js** | 16.1.6 | App Router, SSR, RSC |
+| **React** | 19.2.3 | UI library |
+| **TypeScript** | ^5 | Type safety |
+| **Tailwind CSS** | ^4 | Utility-first styling |
+| **HeroUI** | ^2.8.10 | UI component library |
+| **shadcn/ui** | ^3.8.5 | Component generator (CVA-based) |
+| **Framer Motion** | ^12.35.2 | Animations |
+| **Radix UI** | ^1.4.3 | Headless primitives |
+| **Lucide React** | ^0.575.0 | Icon library |
+| **Phosphor Icons** | ^2.1.10 | Additional icons |
+| **ECharts** | ^6.0.0 | Charts and graphs |
+| **React Markdown** | ^10.1.0 | Markdown rendering |
+| **KaTeX** | ^0.16.33 | Math notation rendering |
+| **CodeMirror** | ^6 | Markdown editor (admin) |
+| **Swiper** | ^12.1.2 | Touch sliders |
+| **Playwright** | ^1.58.2 | E2E testing |
+
+<Tip>
+  The frontend uses **Class Variance Authority (CVA)** for component variants, following the shadcn/ui pattern. Reusable UI components live in `src/design-system/` and are imported via `@/components/ui`.
+</Tip>
+
+## Backend
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **Express.js** | ^5.1.0 | HTTP server framework |
+| **TypeScript** | ^5.9.3 | Type safety |
+| **Drizzle ORM** | ^0.44.7 | Database ORM and migrations |
+| **Better Auth** | ^1.3.10 | Authentication (email/password + OAuth) |
+| **Zod** | ^4.1.12 | Schema validation |
+| **BullMQ** | ^5.71.1 | Job queue (analytics, email, cleanup) |
+| **ioredis** | ^5.10.1 | Redis client for BullMQ |
+| **redis** | ^5.10.0 | Redis client for caching |
+| **pg** | ^8.16.3 | PostgreSQL driver |
+| **MinIO** | ^8.0.7 | S3-compatible object storage client |
+| **Multer** | ^2.1.0 | File upload handling |
+| **tsx** | ^4.20.6 | TypeScript execution (dev) |
+| **Supertest** | ^7.1.4 | Integration testing |
+
+## AI layer
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **Mistral AI** (`mistral-small`) | — | Socratic AI teacher (free tier) |
+| **@ai-sdk/mistral** | ^3.0.20 | Mistral provider for Vercel AI SDK |
+| **Vercel AI SDK** | ^6.0.97 | Streaming, `streamText`, `useChat` |
+
+The AI teacher uses the **Socratic method** — it asks guiding questions rather than giving direct answers. Conversations stream in real-time using the Vercel AI SDK, with the Mistral API key kept exclusively on the backend.
+
+## Infrastructure
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **Docker Compose** | — | Local service orchestration |
+| **PostgreSQL** | 16 | Primary database |
+| **PgBouncer** | latest | Connection pooling (transaction mode) |
+| **Redis** | 7-alpine | Session cache, rate limiting |
+| **MinIO** | latest | S3-compatible object storage |
+| **Nginx** | alpine | Reverse proxy |
+| **pnpm** | 10.30.1 | Package manager |
+
+## Shared package
+
+The monorepo includes a `@learningopk/shared` workspace package used by both frontend and backend for shared TypeScript types and constants.
+
+```json
+// Both packages depend on it
+"@learningopk/shared": "workspace:*"
+```
+
+## Development tools
+
+| Tool | Purpose |
+|------|---------|
+| **concurrently** | Run frontend + backend in parallel (`pnpm dev:all`) |
+| **drizzle-kit** | Database migration generation and management |
+| **ESLint** | Code linting |
+| **Playwright** | End-to-end browser testing |
+
+## Build and run commands
+
+<Tabs>
+  <Tab title="Development">
+    ```bash
+    # Start everything
+    pnpm dev:all
+
+    # Or individually
+    pnpm dev:frontend   # Next.js on port 3000
+    pnpm dev:backend    # Express on port 3001
+    ```
+  </Tab>
+  <Tab title="Database">
+    ```bash
+    pnpm docker:up      # Start PostgreSQL + Redis + MinIO
+    pnpm db:generate    # Generate Drizzle migrations
+    pnpm db:migrate     # Run migrations
+    pnpm db:seed        # Seed content from PDFs
+    pnpm db:studio      # Open Drizzle Studio
+    ```
+  </Tab>
+  <Tab title="Testing">
+    ```bash
+    # Backend
+    pnpm --filter backend test           # All tests
+    pnpm --filter backend test:unit      # Unit tests
+    pnpm --filter backend test:integration  # Integration tests
+
+    # Frontend
+    pnpm --filter frontend test:e2e      # Playwright E2E
+    pnpm --filter frontend test:e2e:smoke  # Smoke tests only
+    ```
+  </Tab>
+  <Tab title="Verification">
+    ```bash
+    pnpm verify:services    # Health check all services
+    pnpm --filter backend ai:verify     # Test AI chat
+    pnpm --filter backend quiz:verify   # Test quiz submission
+    pnpm --filter backend auth:verify   # Test authentication
+    ```
+  </Tab>
+</Tabs>
+
+## Why these choices
+
+- **No vendor lock-in** — everything runs locally via Docker; no cloud services required for development
+- **Free tier AI** — Mistral's free tier provides 1B tokens/month, sufficient for investor demos
+- **Type safety end-to-end** — TypeScript strict mode across both frontend and backend, with shared types via `@learningopk/shared`
+- **pnpm workspaces** — faster installs than npm, native monorepo support without Turborepo complexity

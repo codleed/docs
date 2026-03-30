@@ -1,0 +1,186 @@
+---
+title: "Mock Exam Pages & Components"
+description: "Past paper archive, timed exam mode, result review, and question navigation"
+---
+
+## Overview
+
+Mock exams simulate real board exam conditions with timed MCQ papers. Students can browse available past papers by board, grade, subject, and year, take timed exams, and review solutions after completing an attempt.
+
+## Page Routing
+
+| Route | Page | Description |
+|-------|------|-------------|
+| `/mock-exams` | `app/(main)/mock-exams/page.tsx` | Browse and filter available mock exams |
+| `/mock-exams/[id]` | `app/(main)/mock-exams/[id]/page.tsx` | Exam detail, start attempt, or review results |
+
+<Note>
+Mock exam pages are inside the `(main)` route group. Browsing exams is public; taking exams and viewing solutions require authentication.
+</Note>
+
+---
+
+## Components
+
+### MockExamResultDetails
+
+Displays the results summary after completing a mock exam attempt.
+
+**Location:** `src/components/learn/mock-exam-result-details.tsx`
+
+```tsx
+import { MockExamResultDetails } from "@/components/learn/mock-exam-result-details";
+
+<MockExamResultDetails
+  attempt={attempt}
+  exam={mockExam}
+  questions={questions}
+/>
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `attempt` | `QuizAttempt` | The completed attempt with score |
+| `exam` | `MockExam` | Mock exam metadata |
+| `questions` | `QuizQuestion[]` | Questions with correct answers (available after attempt) |
+
+**Displays:**
+- Score badge (e.g., "42/50")
+- Percentage with color coding (green ≥ 80%, yellow ≥ 60%, red < 60%)
+- Time taken vs. allotted duration
+- Per-question breakdown: correct / incorrect / unattempted
+- Explanation for each question (from `correctOption` + `explanation`)
+
+**Data Flow:**
+1. After completing an attempt, `GET /api/mock-exams/:id/attempts` returns the user's attempts
+2. `GET /api/mock-exams/:id/questions` returns questions with solutions (requires completed attempt)
+3. Component cross-references attempt answers with correct options
+
+### QuestionNavigator
+
+Sidebar or top-bar navigator showing all questions in a mock exam with their status.
+
+**Location:** `src/components/learn/question-navigator.tsx`
+
+```tsx
+import { QuestionNavigator } from "@/components/learn/question-navigator";
+
+<QuestionNavigator
+  questions={questions}
+  currentIndex={activeQuestionIndex}
+  answers={userAnswers}
+  onNavigate={setActiveQuestionIndex}
+/>
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `questions` | `QuizQuestion[]` | All questions in the exam |
+| `currentIndex` | `number` | Currently displayed question index |
+| `answers` | `Record<number, string>` | User's selected answers by question index |
+| `onNavigate` | `(index: number) => void` | Callback to jump to a question |
+
+**Visual States:**
+- **Unanswered** — gray circle with question number
+- **Answered** — filled circle with primary color
+- **Current** — highlighted border/ring
+- **Review mode** — shows correct (green) / incorrect (red) indicators
+
+---
+
+## Exam Flow
+
+### Browse Exams
+
+1. Page calls `GET /api/mock-exams/filters/options` to populate filter dropdowns
+2. User selects filters (board, grade, subject, year)
+3. `GET /api/mock-exams?boardId=...&grade=...&subjectId=...&year=...` returns matching exams
+4. Each exam card shows title, year, duration, total marks, and board/subject badges
+
+### Start Exam
+
+1. User clicks "Start Exam" on a mock exam card
+2. `GET /api/mock-exams/:id` loads exam details with quiz metadata
+3. Quiz questions are loaded from the quiz endpoint
+4. Timer starts counting down from `durationMinutes`
+5. `QuestionNavigator` allows jumping between questions
+6. On timer expiry or manual submit, quiz is scored
+
+### Review Results
+
+1. After submission, `POST /api/quiz/submit` records the attempt
+2. `MockExamResultDetails` shows the score breakdown
+3. `GET /api/mock-exams/:id/questions` becomes available (requires completed attempt)
+4. Full question review with correct answers and explanations
+
+<Warning>
+Solutions are only available **after** completing at least one attempt. This prevents cheating during active exams. Attempting to fetch questions before completion returns a `403` with code `"EXAM_NOT_COMPLETED"`.
+</Warning>
+
+---
+
+## Component Hierarchy
+
+```
+mock-exams/
+├── page.tsx (Exam Browser)
+│   ├── Filter Controls (board, grade, subject, year)
+│   └── Exam Card Grid
+│       └── Exam Card
+│           ├── Title, Year, Duration, Marks
+│           └── Board/Subject badges
+│
+└── [id]/
+    └── page.tsx (Exam Detail / Attempt / Review)
+        ├── Exam Header (title, metadata)
+        ├── Start Button (if no attempt)
+        ├── Quiz Runner (during attempt)
+        │   ├── QuestionNavigator
+        │   ├── QuizQuestionCard
+        │   └── QuizTimer (countdown)
+        └── MockExamResultDetails (after attempt)
+            ├── Score summary
+            └── Question review list
+```
+
+## Data Flow
+
+<Accordion title="Exam Listing">
+```
+GET /api/mock-exams/filters/options
+  ↓ populate dropdowns
+GET /api/mock-exams?boardId=X&grade=Y&subjectId=Z&year=W
+  ↓ render exam cards
+Each card → Link to /mock-exams/:id
+```
+</Accordion>
+
+<Accordion title="Exam Attempt">
+```
+GET /api/mock-exams/:id
+  ↓ load exam metadata
+GET quiz questions (from quiz endpoint)
+  ↓ render QuizRunner
+User answers questions → local state
+Timer countdown → auto-submit on expiry
+POST /api/quiz/submit
+  ↓ record attempt + score
+GET /api/mock-exams/:id/questions
+  ↓ load solutions (now available)
+Render MockExamResultDetails
+```
+</Accordion>
+
+<Accordion title="Attempt History">
+```
+GET /api/mock-exams/:id/attempts
+  ↓ returns array of past attempts
+Each attempt: { id, score, totalMarks, completedAt }
+Attempts ordered by completedAt descending
+Latest attempt used for result review
+```
+</Accordion>

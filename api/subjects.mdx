@@ -1,0 +1,103 @@
+---
+title: Subjects API
+description: Retrieve all subjects available in the curriculum, cached for performance.
+---
+
+## Overview
+
+The Subjects API returns all subjects configured in the system. Results are cached in Redis for one hour to reduce database load.
+
+---
+
+## List subjects
+
+Returns all subjects ordered alphabetically by name.
+
+```bash
+GET /api/subjects
+```
+
+**Auth**: None (public endpoint)
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl http://localhost:3001/api/subjects
+```
+
+</CodeGroup>
+
+### Response
+
+**Status**: `200 OK`
+
+```json
+{
+  "subjects": [
+    {
+      "id": 1,
+      "boardId": 1,
+      "grade": "Class 10",
+      "name": "Mathematics",
+      "slug": "mathematics",
+      "icon": "calculator",
+      "description": "Algebra, geometry, trigonometry and more"
+    },
+    {
+      "id": 2,
+      "boardId": 1,
+      "grade": "Class 10",
+      "name": "Science",
+      "slug": "science",
+      "icon": "flask",
+      "description": "Physics, chemistry and biology fundamentals"
+    }
+  ]
+}
+```
+
+<ResponseField name="subjects" type="array" required>
+  Array of subject objects.
+
+  <Expandable title="subject object">
+    <ResponseField name="id" type="number" required>
+      Unique subject identifier.
+    </ResponseField>
+
+    <ResponseField name="boardId" type="number" required>
+      ID of the parent board this subject belongs to.
+    </ResponseField>
+
+    <ResponseField name="grade" type="string | null">
+      Grade level this subject is associated with (e.g., `"Class 10"`).
+    </ResponseField>
+
+    <ResponseField name="name" type="string" required>
+      Display name of the subject (e.g., `"Mathematics"`).
+    </ResponseField>
+
+    <ResponseField name="slug" type="string" required>
+      URL-safe slug used in curriculum routes (e.g., `"mathematics"`).
+    </ResponseField>
+
+    <ResponseField name="icon" type="string | null">
+      Icon identifier for the subject card UI.
+    </ResponseField>
+
+    <ResponseField name="description" type="string | null">
+      Brief description of the subject content.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<Note>
+Subject results are cached in Redis with a TTL of 3600 seconds (1 hour). Updated subjects may take up to an hour to appear in this endpoint's response.
+</Note>
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `500` | Database error — failed to fetch subjects |

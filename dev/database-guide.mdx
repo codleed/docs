@@ -1,0 +1,373 @@
+---
+title: "Database Guide"
+description: "Drizzle ORM workflow, migrations, seeding, and repository pattern"
+---
+
+## Overview
+
+LearningoPK uses [Drizzle ORM](https://orm.drizzle.team/) with PostgreSQL 16 as the primary database. The schema is defined in TypeScript, migrations are auto-generated, and queries use a type-safe builder API. The codebase follows a repository pattern to isolate database access from business logic.
+
+## Database Stack
+
+| Component | Version | Port | Purpose |
+|-----------|---------|------|---------|
+| PostgreSQL | 16 | 5433 | Primary data store |
+| Redis | 7 | 6379 | Cache, sessions, job queues |
+| PgBouncer | — | 5432 | Connection pooling (production) |
+
+## Drizzle Configuration
+
+The Drizzle config lives in the project root at `drizzle.config.ts`:
+
+```typescript
+import { config } from "dotenv";
+import { defineConfig } from "drizzle-kit";
+
+config({ path: "./backend/.env" });
+
+export default defineConfig({
+  schema: "./backend/src/lib/db/schema.ts",
+  out: "./backend/drizzle",
+  dialect: "postgresql",
+  dbCredentials: {
+    url: process.env.DATABASE_URL
+  },
+  strict: true,
+  verbose: true
+});
+```
+
+## Database Client
+
+The Drizzle client is initialized in `backend/src/lib/db/index.ts`:
+
+```typescript
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import { env } from "../env.js";
+import * as schema from "./schema.js";
+
+export const pool = new Pool({
+  connectionString: env.DATABASE_URL
+});
+
+export const db = drizzle(pool, { schema });
+```
+
+<Note>
+The schema is passed to `drizzle()` to enable relational query API (e.g., `db.query.users.findMany()`). All table definitions are exported from `schema.ts`.
+</Note>
+
+## Schema Structure
+
+The schema in `backend/src/lib/db/schema.ts` defines 28 tables using `pgTable()`:
+
+```typescript
+import {
+  pgTable, serial, text, integer, boolean,
+  timestamp, uuid, jsonb, pgEnum, uniqueIndex, index
+} from "drizzle-orm/pg-core";
+
+export const quizzes = pgTable("quizzes", {
+  id: serial("id").primaryKey(),
+  chapterId: integer("chapter_id")
+    .notNull()
+    .references(() => chapters.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  durationMinutes: integer("duration_minutes").notNull().default(30),
+  totalMarks: integer("total_marks").notNull(),
+  type: quizTypeEnum("type").notNull().default("chapter_quiz")
+});
+```
+
+### PostgreSQL Enums
+
+Enums are defined with `pgEnum()` and reused across tables:
+
+```typescript
+export const gradeEnum = pgEnum("grade", ["9", "10"]);
+export const difficultyEnum = pgEnum("difficulty", ["easy", "medium", "hard"]);
+export const quizTypeEnum = pgEnum("quiz_type", ["chapter_quiz", "mock_exam"]);
+export const answerOptionEnum = pgEnum("answer_option", ["a", "b", "c", "d"]);
+export const userRoleEnum = pgEnum("user_role", ["student", "admin"]);
+```
+
+### Indexes
+
+Indexes are defined in the table's second argument callback:
+
+```typescript
+export const forumThreads = pgTable("forum_threads", {
+  // columns...
+}, (table) => [
+  index("forum_threads_search_idx").using(
+    "gin",
+    sql`to_tsvector('english', coalesce(${table.title}, '') || ' ' || coalesce(${table.body}, ''))`
+  )
+]);
+```
+
+Unique composite indexes use `uniqueIndex()`:
+
+```typescript
+export const userProgress = pgTable("user_progress", {
+  // columns...
+}, (table) => [
+  uniqueIndex("user_progress_user_chapter_idx").on(table.userId, table.chapterId)
+]);
+```
+
+## Migration Workflow
+
+<Steps>
+<Step title="Modify the schema">
+Edit `backend/src/lib/db/schema.ts` to add/change tables, columns, or indexes.
+</Step>
+<Step title="Generate migration">
+```bash
+pnpm db:generate
+```
+
+This creates a new SQL file in `backend/drizzle/` with an auto-generated name like `0012_add_quiz_attempt_type.sql`.
+</Step>
+<Step title="Review the migration">
+Inspect the generated SQL file to verify it matches your intent:
+
+```sql
+ALTER TABLE "quiz_attempts" ADD COLUMN "type" "quiz_type" DEFAULT 'chapter_quiz' NOT NULL;
+```
+</Step>
+<Step title="Apply the migration">
+```bash
+pnpm db:migrate
+```
+</Step>
+</Steps>
+
+<Warning>
+Always review generated migrations before applying. Drizzle Kit generates `ALTER TABLE` statements for column changes, but complex transformations (renames, type changes) may need manual adjustment.
+</Warning>
+
+### Migration History
+
+The project has 13 migrations (0000–0012):
+
+```
+backend/drizzle/
+├── 0000_clammy_piledriver.sql
+├── 0001_overjoyed_living_tribunal.sql
+├── 0002_bouncy_santa_claus.sql
+├── 0003_vengeful_tyrannus.sql
+├── 0004_burly_slayback.sql
+├── 0005_admin_phase4_notifications_settings.sql
+├── 0006_sparkling_epoch.sql
+├── 0007_chapter_summary_media.sql
+├── 0008_curriculum_builder.sql
+├── 0009_chapter_summary_links.sql
+├── 0010_slow_night_nurse.sql
+├── 0011_lucky_black_bird.sql
+├── 0011_quiz_questions_chapter.sql
+├── 0012_add_quiz_attempt_type.sql
+└── meta/
+    ├── _journal.json
+    └── 000*_snapshot.json
+```
+
+## Seeding
+
+The database is seeded using `backend/seed.ts` and helper scripts:
+
+```bash
+# Full seed (runs before E2E tests via global-setup.mjs)
+pnpm db:seed
+
+# Seed content only
+pnpm --filter backend tsx scripts/seed-content.ts
+
+# Seed quizzes only
+pnpm --filter backend tsx scripts/seed-quizzes.ts
+```
+
+The E2E global setup automatically seeds the database before test runs:
+
+```javascript
+// frontend/tests/e2e/global-setup.mjs
+export default async function globalSetup() {
+  await execAsync(`${pnpmCommand} --filter backend db:seed`, {
+    cwd: workspaceRoot,
+    maxBuffer: 10 * 1024 * 1024,
+    shell: true
+  });
+}
+```
+
+## Repository Pattern
+
+All database queries are isolated in repository classes under `backend/src/repositories/`. This separates data access from business logic and makes testing straightforward.
+
+### Repository Structure
+
+```
+backend/src/repositories/
+├── index.ts                  # Barrel exports
+├── quiz.repository.ts        # Quiz + attempt queries
+├── learn.repository.ts       # Chapter + content queries
+├── progress.repository.ts    # User progress queries
+└── forum.repository.ts       # Forum thread + reply queries
+```
+
+### Standard Repository Class
+
+Each repository class encapsulates queries for a domain:
+
+```typescript
+import { eq } from "drizzle-orm";
+import { db } from "../lib/db/index.js";
+import { quizzes, quizQuestions, quizAttempts, chapters } from "../lib/db/schema.js";
+
+export class QuizRepository {
+  async findQuizById(quizId: number) {
+    return db
+      .select({
+        id: quizzes.id,
+        chapterId: quizzes.chapterId,
+        totalMarks: quizzes.totalMarks,
+        type: quizzes.type
+      })
+      .from(quizzes)
+      .where(eq(quizzes.id, quizId))
+      .limit(1);
+  }
+
+  async findQuestionsByQuizId(quizId: number) {
+    return db
+      .select({
+        id: quizQuestions.id,
+        quizId: quizQuestions.quizId,
+        question: quizQuestions.question,
+        optionA: quizQuestions.optionA,
+        optionB: quizQuestions.optionB,
+        optionC: quizQuestions.optionC,
+        optionD: quizQuestions.optionD,
+        correctOption: quizQuestions.correctOption,
+        explanation: quizQuestions.explanation,
+        marks: quizQuestions.marks,
+        chapterTitle: chapters.title,
+        chapterNumber: chapters.chapterNumber
+      })
+      .from(quizQuestions)
+      .leftJoin(chapters, eq(quizQuestions.chapterId, chapters.id))
+      .where(eq(quizQuestions.quizId, quizId));
+  }
+
+  async createAttempt(data: {
+    userId: string;
+    quizId: number;
+    type: "chapter_quiz" | "mock_exam";
+    answers: Record<string, "a" | "b" | "c" | "d">;
+    score: number;
+    totalMarks: number;
+    startedAt: Date;
+    completedAt: Date;
+  }) {
+    return db
+      .insert(quizAttempts)
+      .values(data)
+      .returning({
+        id: quizAttempts.id,
+        completedAt: quizAttempts.completedAt
+      });
+  }
+
+  async findAttemptsByUserId(userId: string, limit = 20) {
+    return db
+      .select()
+      .from(quizAttempts)
+      .where(eq(quizAttempts.userId, userId))
+      .orderBy(quizAttempts.completedAt)
+      .limit(limit);
+  }
+}
+
+export const quizRepository = new QuizRepository();
+```
+
+### Guidelines
+
+- **Repositories only query** — no business logic, no side effects
+- **Select specific columns** — avoid `select()` without column specification in production code
+- **Use typed insert data** — the `createAttempt` parameter type matches the table schema
+- **Export singleton instances** — `export const quizRepository = new QuizRepository()`
+- **Barrel export** — all repositories are re-exported from `repositories/index.ts`
+
+```typescript
+// backend/src/repositories/index.ts
+export * from "./quiz.repository.js";
+export * from "./learn.repository.js";
+export * from "./progress.repository.js";
+export * from "./forum.repository.js";
+```
+
+## Query Patterns
+
+### Select with Filter
+
+```typescript
+const quiz = await db
+  .select({ id: quizzes.id, totalMarks: quizzes.totalMarks })
+  .from(quizzes)
+  .where(eq(quizzes.id, quizId))
+  .limit(1);
+```
+
+### Join with Related Table
+
+```typescript
+const questions = await db
+  .select({
+    question: quizQuestions.question,
+    chapterTitle: chapters.title,
+  })
+  .from(quizQuestions)
+  .leftJoin(chapters, eq(quizQuestions.chapterId, chapters.id))
+  .where(eq(quizQuestions.quizId, quizId));
+```
+
+### Insert with Returning
+
+```typescript
+const [attempt] = await db
+  .insert(quizAttempts)
+  .values(data)
+  .returning({ id: quizAttempts.id });
+```
+
+### JSONB Column
+
+```typescript
+// Schema definition
+answers: jsonb("answers").$type<Record<string, string>>().notNull()
+
+// Usage in query
+const attempt = await db
+  .select({ answers: quizAttempts.answers })
+  .from(quizAttempts)
+  .where(eq(quizAttempts.id, attemptId));
+```
+
+## Database Commands
+
+| Command | Description |
+|---------|-------------|
+| `pnpm db:generate` | Generate migration from schema changes |
+| `pnpm db:migrate` | Apply pending migrations |
+| `pnpm db:seed` | Seed database with initial data |
+| `pnpm --filter backend db:seed` | Seed from backend package |
+
+## Environment
+
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5433/learningopk
+```
+
+The connection string uses port `5433` which maps to PostgreSQL's internal `5432` via Docker Compose. In production with PgBouncer, the port would be `5432`.

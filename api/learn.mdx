@@ -1,0 +1,208 @@
+---
+title: Learning API
+description: Curriculum content endpoints for boards, subjects, chapters, exercises, flashcards, and quizzes.
+---
+
+## Overview
+
+The Learning API serves curriculum content organized by board, grade, subject, and chapter. All content endpoints use slug-based URL routing (`/:board/:grade/:subject/:chapter`).
+
+---
+
+## Get subject with chapters
+
+Retrieve a subject and its chapter list by board, grade, and subject slugs.
+
+```bash
+GET /api/learn/:board/:grade/:subject
+```
+
+**Auth**: None
+
+### Path parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `board` | string | Board slug (e.g., `punjab`, `federal`) — lowercase alphanumeric with hyphens |
+| `grade` | string | Grade slug (e.g., `9`, `10`) — lowercase alphanumeric with hyphens |
+| `subject` | string | Subject slug (e.g., `physics`, `chemistry`) — lowercase alphanumeric with hyphens |
+
+### Response
+
+```json
+{
+  "board": {
+    "slug": "punjab",
+    "name": "Punjab Board"
+  },
+  "grade": "9",
+  "class": {
+    "slug": "9",
+    "name": "9th"
+  },
+  "subject": {
+    "id": 1,
+    "slug": "physics",
+    "name": "Physics",
+    "description": "Introduction to physics concepts for class 9"
+  },
+  "chapters": [
+    {
+      "id": 1,
+      "chapterNumber": 1,
+      "title": "Physical Quantities and Measurement",
+      "slug": "physical-quantities-and-measurement",
+      "hasExercises": true,
+      "hasQuiz": true
+    }
+  ]
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid route parameters (slug format mismatch) |
+| `404` | Subject not found |
+
+---
+
+## Get chapter progress graph
+
+Retrieve a graph of chapters with progress status for the authenticated user. Students can only access their own board/class combination.
+
+```bash
+GET /api/learn/:board/:grade/:subject/graph
+```
+
+**Auth**: Student
+
+### Path parameters
+
+Same as [Get subject with chapters](#get-subject-with-chapters).
+
+### Response
+
+```json
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": 1,
+        "title": "Physical Quantities and Measurement",
+        "progressPercent": 75
+      }
+    ],
+    "edges": [
+      { "source": 1, "target": 2 }
+    ]
+  }
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid route parameters |
+| `403` | Forbidden — student's board or class does not match the requested route |
+| `404` | Subject not found |
+
+<Note>
+Students are restricted to their registered board and class. Admins can access any combination.
+</Note>
+
+---
+
+## Get chapter detail
+
+Retrieve a single chapter with its exercises, flashcards, and quiz metadata.
+
+```bash
+GET /api/learn/:board/:grade/:subject/:chapter
+```
+
+**Auth**: None
+
+### Path parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `board` | string | Board slug |
+| `grade` | string | Grade slug |
+| `subject` | string | Subject slug |
+| `chapter` | string | Chapter slug (e.g., `physical-quantities-and-measurement`) |
+
+### Response
+
+```json
+{
+  "board": {
+    "slug": "punjab",
+    "name": "Punjab Board"
+  },
+  "grade": "9",
+  "class": {
+    "slug": "9",
+    "name": "9th"
+  },
+  "subject": {
+    "id": 1,
+    "slug": "physics",
+    "name": "Physics"
+  },
+  "chapter": {
+    "id": 1,
+    "chapterNumber": 1,
+    "title": "Physical Quantities and Measurement",
+    "slug": "physical-quantities-and-measurement",
+    "summary": "This chapter covers..."
+  },
+  "exercises": [
+    {
+      "id": 1,
+      "exerciseNumber": "1.1",
+      "question": "Define physical quantities.",
+      "solution": "Physical quantities are...",
+      "difficulty": "easy",
+      "type": "short"
+    }
+  ],
+  "flashcards": [
+    {
+      "id": 1,
+      "front": "What is a scalar quantity?",
+      "back": "A quantity described by magnitude only."
+    }
+  ],
+  "quiz": {
+    "id": 1,
+    "title": "Chapter 1 Quiz",
+    "questionCount": 10,
+    "timeLimit": 600,
+    "questions": [
+      {
+        "id": 1,
+        "question": "Which of the following is a vector quantity?",
+        "optionA": "Mass",
+        "optionB": "Speed",
+        "optionC": "Velocity",
+        "optionD": "Time",
+        "marks": 1
+      }
+    ]
+  }
+}
+```
+
+<Note>
+Quiz questions do **not** include `correctOption` or `explanation` in this response. Those fields are only returned after quiz submission via the Quiz API.
+</Note>
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid route parameters |
+| `404` | Chapter not found |
