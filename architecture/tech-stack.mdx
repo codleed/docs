@@ -9,7 +9,7 @@ Every tool in the LearningoPK stack is free, open-source, and runs locally. No p
 
 <CardGroup cols={2}>
   <Card title="Frontend" icon="browser">
-    Next.js 16, React 19, Tailwind CSS 4, HeroUI
+    Next.js 16, React 19, Tailwind CSS 4, shadcn/ui
   </Card>
   <Card title="Backend" icon="server">
     Express.js 5, TypeScript, Drizzle ORM
@@ -30,8 +30,7 @@ Every tool in the LearningoPK stack is free, open-source, and runs locally. No p
 | **React** | 19.2.3 | UI library |
 | **TypeScript** | ^5 | Type safety |
 | **Tailwind CSS** | ^4 | Utility-first styling |
-| **HeroUI** | ^2.8.10 | UI component library |
-| **shadcn/ui** | ^3.8.5 | Component generator (CVA-based) |
+| **shadcn/ui** | — | Component generator (CVA-based) |
 | **Framer Motion** | ^12.35.2 | Animations |
 | **Radix UI** | ^1.4.3 | Headless primitives |
 | **Lucide React** | ^0.575.0 | Icon library |
@@ -40,11 +39,11 @@ Every tool in the LearningoPK stack is free, open-source, and runs locally. No p
 | **React Markdown** | ^10.1.0 | Markdown rendering |
 | **KaTeX** | ^0.16.33 | Math notation rendering |
 | **CodeMirror** | ^6 | Markdown editor (admin) |
-| **Swiper** | ^12.1.2 | Touch sliders |
+| **ECharts** | ^6.0.0 | Charts and graphs |
 | **Playwright** | ^1.58.2 | E2E testing |
 
 <Tip>
-  The frontend uses **Class Variance Authority (CVA)** for component variants, following the shadcn/ui pattern. Reusable UI components live in `src/design-system/` and are imported via `@/components/ui`.
+  The frontend uses **Class Variance Authority (CVA)** for component variants, following the shadcn/ui pattern. Reusable UI components live in `src/components/ui/` and are imported via `@/components/ui`.
 </Tip>
 
 ## Backend

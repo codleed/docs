@@ -20,7 +20,7 @@ All AI chat endpoints require authentication. The AI chat endpoint is rate-limit
 Retrieve all general (non-chapter) chat sessions for the authenticated user.
 
 ```bash
-GET /api/ai-chat/sessions
+GET /api/ai/sessions
 ```
 
 **Auth**: Student
@@ -53,7 +53,7 @@ Sessions are ordered by `lastMessageAt` descending.
 Retrieve all messages in a specific chat session.
 
 ```bash
-GET /api/ai-chat/sessions/:sessionId/messages
+GET /api/ai/sessions/:sessionId/messages
 ```
 
 **Auth**: Student
@@ -104,7 +104,7 @@ GET /api/ai-chat/sessions/:sessionId/messages
 Send a message to the AI tutor and receive a streamed response. This endpoint creates a new session if `sessionId` is not provided.
 
 ```bash
-POST /api/ai-chat/chat
+POST /api/ai/chat
 ```
 
 **Auth**: Student
@@ -138,7 +138,7 @@ This endpoint is rate-limited per user. Check the `x-ratelimit-*` response heade
 <CodeGroup>
 
 ```bash cURL
-curl -X POST http://localhost:3001/api/ai-chat/chat \
+curl -X POST http://localhost:3001/api/ai/chat \
   -H "Content-Type: application/json" \
   -H "Cookie: better-auth.session_token=..." \
   -d '{
@@ -196,7 +196,7 @@ The AI chat includes the following safety measures:
 
 Headers:
 ```
-x-ratelimit-limit: 50
+x-ratelimit-limit: 20
 x-ratelimit-remaining: 0
 x-ratelimit-reset: 120
 retry-after: 120

@@ -229,6 +229,12 @@ POST /api/admin/content/subjects
 | `icon` | string | No | Icon identifier |
 | `description` | string | No | Subject description |
 
+### Delete subject
+
+```bash
+POST /api/admin/content/subjects/:id/delete
+```
+
 ### Create chapter
 
 ```bash
@@ -353,6 +359,182 @@ POST /api/admin/content/exercises/:id/update
 ```bash
 POST /api/admin/content/exercises/:id/delete
 ```
+
+---
+
+## Quiz management
+
+### Upsert quiz
+
+Creates a quiz if none exists for the chapter, otherwise updates it.
+
+```bash
+POST /api/admin/content/quizzes
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `chapterId` | number | Yes | Parent chapter ID |
+| `duration` | number | No | Duration in seconds |
+| `totalMarks` | number | No | Total marks for the quiz |
+
+### Get quiz by chapter
+
+```bash
+GET /api/admin/content/quizzes?chapterId=5
+```
+
+### Update quiz
+
+```bash
+POST /api/admin/content/quizzes/:id/update
+```
+
+### Delete quiz
+
+```bash
+POST /api/admin/content/quizzes/:id/delete
+```
+
+---
+
+## Quiz question management
+
+### Add question
+
+```bash
+POST /api/admin/content/quiz-questions
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `quizId` | number | Yes | Parent quiz ID |
+| `questionText` | string | Yes | Question text |
+| `optionA` | string | Yes | Option A |
+| `optionB` | string | Yes | Option B |
+| `optionC` | string | Yes | Option C |
+| `optionD` | string | Yes | Option D |
+| `correctOption` | `"a"` \| `"b"` \| `"c"` \| `"d"` | Yes | Correct answer |
+| `explanation` | string | No | Explanation (nullable) |
+| `marks` | number | No | Marks for this question (default: 1) |
+
+<Note>Adding a question automatically recalculates the quiz's `totalMarks`.</Note>
+
+### List questions
+
+```bash
+GET /api/admin/content/quiz-questions?quizId=5
+```
+
+### Update question
+
+```bash
+POST /api/admin/content/quiz-questions/:id/update
+```
+
+### Delete question
+
+```bash
+POST /api/admin/content/quiz-questions/:id/delete
+```
+
+---
+
+## Flashcard management
+
+### Create flashcard
+
+```bash
+POST /api/admin/content/flashcards
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `chapterId` | number | Yes | Parent chapter ID |
+| `front` | string | Yes | Front side text |
+| `back` | string | Yes | Back side text |
+
+<Note>Flashcards are auto-appended with the next `orderIndex`.</Note>
+
+### List flashcards
+
+```bash
+GET /api/admin/content/flashcards?chapterId=5
+```
+
+### Update flashcard
+
+```bash
+POST /api/admin/content/flashcards/:id/update
+```
+
+### Delete flashcard
+
+```bash
+POST /api/admin/content/flashcards/:id/delete
+```
+
+### Reorder flashcards
+
+```bash
+POST /api/admin/content/flashcards/reorder
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `flashcardIds` | number[] | Yes | All flashcard IDs for the chapter in desired order |
+
+<Warning>The `flashcardIds` array must include ALL flashcard IDs for the chapter. Omitting any ID will cause the reorder to fail.</Warning>
+
+---
+
+## Job management
+
+### Get queue stats
+
+```bash
+GET /api/admin/jobs/stats
+```
+
+Returns queue statistics (waiting, active, completed, failed) per queue.
+
+### Response
+
+```json
+{
+  "queues": {
+    "analytics": {
+      "waiting": 0,
+      "active": 0,
+      "completed": 15,
+      "failed": 0
+    },
+    "email": {
+      "waiting": 0,
+      "active": 0,
+      "completed": 3,
+      "failed": 0
+    },
+    "cleanup": {
+      "waiting": 0,
+      "active": 0,
+      "completed": 45,
+      "failed": 0
+    }
+  }
+}
+```
+
+### Retry failed job
+
+```bash
+POST /api/admin/jobs/:queueName/:jobId/retry
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `queueName` | string | Queue name (analytics, email, cleanup) |
+| `jobId` | string | Job ID to retry |
 
 ---
 

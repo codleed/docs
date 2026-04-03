@@ -13,11 +13,11 @@ The forum enables students to ask questions, share solutions, and help each othe
 
 | Route | Page | Description |
 |-------|------|-------------|
-| `/forum` | `app/(main)/forum/page.tsx` | Forum thread feed with filters |
-| `/forum/[threadId]` | `app/(main)/forum/[threadId]/page.tsx` | Thread detail with replies |
+| `/forum` | `app/forum/page.tsx` | Forum thread feed with filters |
+| `/forum/[threadId]` | `app/forum/[threadId]/page.tsx` | Thread detail with replies |
 
 <Note>
-Forum pages are inside the `(main)` route group and include the full app shell (sidebar, navigation). Thread listing is public; creating threads, replying, and voting require authentication.
+Forum pages are at the app root level (no route group) and include the full app shell (sidebar, navigation). Thread listing is public; creating threads, replying, and voting require authentication.
 </Note>
 
 ---

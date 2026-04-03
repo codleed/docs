@@ -12,10 +12,10 @@ LearningoPK uses Docker Compose to run all infrastructure services locally with 
 | Service | Image | Port | Purpose |
 |---------|-------|------|---------|
 | **PostgreSQL** | postgres:16 | 5433 | Primary database |
-| **PgBouncer** | edoburu/pgbouncer | 6432 | Connection pooling |
-| **Redis** | redis:7-alpine | 6379 | Session cache, rate limiting |
+| **PgBouncer** | edoburu/pgbouncer | 6432 | Connection pooling (transaction mode) |
+| **Redis** | redis:7-alpine | 6379 | Session cache, rate limiting, job queues |
 | **MinIO** | minio/minio | 9000 / 9001 | S3-compatible object storage |
-| **Nginx** | nginx:alpine | 80 | Reverse proxy |
+| **Nginx** | nginx:alpine | 80 | Reverse proxy + load balancing |
 | **Backend** | Custom Dockerfile | 3001 | Express API server |
 
 ## Starting Services

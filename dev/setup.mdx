@@ -99,9 +99,17 @@ learningopk/
 
 | Script | Description |
 |--------|-------------|
-| `pnpm dev:all` | Start frontend + backend |
+| `pnpm dev:all` | Start frontend + backend concurrently |
+| `pnpm dev:frontend` | Start Next.js dev server (port 3000) |
+| `pnpm dev:backend` | Start Express API server (port 3001) |
 | `pnpm lint` | Lint all packages |
 | `pnpm typecheck` | TypeScript check all packages |
+| `pnpm docker:up` | Start all infrastructure containers |
+| `pnpm docker:down` | Stop all containers |
+| `pnpm db:generate` | Generate Drizzle migrations |
 | `pnpm db:migrate` | Run Drizzle migrations |
 | `pnpm db:seed` | Seed sample content |
 | `pnpm db:studio` | Open Drizzle Studio |
+| `pnpm db:push` | Push schema directly (dev only) |
+| `pnpm db:clear` | Clear all database tables |
+| `pnpm verify:services` | Health check all services |

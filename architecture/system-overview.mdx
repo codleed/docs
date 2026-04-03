@@ -106,16 +106,16 @@ The monorepo uses pnpm workspaces with two main packages:
 ```text frontend/
 ├── app/             # Next.js App Router pages
 │   ├── (auth)/      # Authentication pages
-│   ├── (dashboard)/ # Student dashboard
-│   ├── (learn)/     # Learning pages
-│   ├── admin/       # Admin panel
+│   ├── (dashboard)/ # Student dashboard, subjects, stats, calendar, settings
+│   ├── (learn)/     # Learning pages: [board]/[grade]/[subject], past-papers
+│   ├── admin/       # Admin panel (17 sections)
 │   ├── ai-tutor/    # AI chat interface
 │   └── forum/       # Community forum
 ├── src/
-│   ├── components/  # Page-specific components
-│   ├── design-system/ # Reusable UI (CVA-based)
-│   └── lib/         # Utilities
-└── tests/e2e/       # Playwright E2E tests
+│   ├── components/  # 180+ components across ui, admin, learn, forum, stats, etc.
+│   ├── design-system/ # Legacy (deprecated, re-exports ui/)
+│   └── lib/         # 19 utility functions
+└── tests/e2e/       # 25 Playwright E2E specs
 ```
 </CodeGroup>
 
@@ -126,10 +126,10 @@ All services run locally via Docker Compose (`docker-compose.yml`):
 | Service | Image | Port | Purpose |
 |---------|-------|------|---------|
 | PostgreSQL | `postgres:16` | 5433 | Primary database |
-| PgBouncer | `edoburu/pgbouncer` | 6432 | Connection pooling |
-| Redis | `redis:7-alpine` | 6379 | Session cache, rate limiting |
+| PgBouncer | `edoburu/pgbouncer` | 6432 | Connection pooling (transaction mode) |
+| Redis | `redis:7-alpine` | 6379 | Session cache, rate limiting, job queues |
 | MinIO | `minio/minio` | 9000 / 9001 | Object storage (S3-compatible) |
-| Nginx | `nginx:alpine` | 80 | Reverse proxy |
+| Nginx | `nginx:alpine` | 80 | Reverse proxy + load balancing |
 | Backend | Custom Dockerfile | 3001 | Express.js API server |
 
 <Note>

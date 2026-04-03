@@ -1,11 +1,11 @@
 ---
 title: Database Schema
-description: Complete Drizzle ORM schema reference for LearningoPK's PostgreSQL database — 30 tables across 8 domains with relationships, column types, enums, and migration workflow.
+description: Complete Drizzle ORM schema reference for LearningoPK's PostgreSQL database — 22 tables across 8 domains with relationships, column types, enums, and migration workflow.
 ---
 
 ## Overview
 
-LearningoPK uses **PostgreSQL 16** with **Drizzle ORM** for schema management and migrations. The database contains **30 tables** organized into 8 functional domains. All tables use `snake_case` naming. Foreign keys enforce referential integrity with appropriate cascade rules.
+LearningoPK uses **PostgreSQL 16** with **Drizzle ORM** for schema management and migrations. The database contains **22 tables** organized into 8 functional domains. All tables use `snake_case` naming. Foreign keys enforce referential integrity with appropriate cascade rules.
 
 | Domain | Tables | Description |
 |--------|--------|-------------|
@@ -16,7 +16,7 @@ LearningoPK uses **PostgreSQL 16** with **Drizzle ORM** for schema management an
 | **Forum** | 3 | Threads, replies, votes |
 | **Progress** | 1 | Per-chapter user progress tracking |
 | **Admin** | 4 | Moderation flags, audit logs, notifications, settings |
-| **Planner** | 2 | Mock exams, institutes |
+| **Other** | 2 | Mock exams, institutes |
 
 ## Enums
 
@@ -28,7 +28,7 @@ Custom PostgreSQL enums enforce type safety at the database level.
 | `user_status` | `active`, `suspended` | `user` |
 | `grade` | `9`, `10` | `subjects`, `content_sources`, `mock_exams` |
 | `difficulty` | `easy`, `medium`, `hard` | `exercises` |
-| `exercise_type` | `mcq`, `short`, `long`, `numerical` | `exercises` |
+| `exercise_type` | `mcq`, `short`, `long`, `numerical`, `fill_in_blanks` | `exercises` |
 | `quiz_type` | `chapter_quiz`, `mock_exam` | `quizzes`, `quiz_attempts` |
 | `answer_option` | `a`, `b`, `c`, `d` | `quiz_questions` |
 | `ai_message_role` | `user`, `assistant` | `ai_messages` |

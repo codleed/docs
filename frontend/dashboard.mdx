@@ -11,6 +11,10 @@ The dashboard is the student's home page after login. It provides a snapshot of 
 
 ## Components
 
+### DashboardClient
+
+Main client component that orchestrates all dashboard sections.
+
 ### Subject Progress Cards
 
 Displays each enrolled subject with:
@@ -27,17 +31,31 @@ Shows the latest actions:
 - Quiz attempts and scores
 - AI tutor sessions
 
-### Quick Actions
+### Streak Card
 
-- Continue where you left off
-- Start a new quiz
-- Open AI tutor
-- Visit the forum
+Displays current study streak with streak freeze status.
+
+### Welcome Card
+
+Personalized greeting with student name and XP info.
+
+### StatsCards
+
+Quick stats overview with KPI numbers.
+
+### Weekly Activity Heatmap
+
+GitHub-style calendar showing study intensity per day.
+
+### Dashboard Chrome Layout
+
+Full dashboard layout with settings panel.
 
 ## Data Sources
 
 The dashboard fetches data from:
 
-- `GET /api/progress/stats` — Aggregated statistics
-- `GET /api/progress` — Per-chapter progress
-- `GET /api/boards` and `GET /api/subjects` — Curriculum structure
+- `GET /api/progress/dashboard` — Full dashboard: streaks, subjects summary, recent activity, quiz history, XP, activity calendar
+- `GET /api/progress/dashboard/:boardSlug/:grade/:subjectSlug` — Subject-level dashboard with chapter progress
+- `GET /api/boards` — Board list
+- `GET /api/subjects` — Subject list

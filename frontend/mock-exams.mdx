@@ -13,11 +13,11 @@ Mock exams simulate real board exam conditions with timed MCQ papers. Students c
 
 | Route | Page | Description |
 |-------|------|-------------|
-| `/mock-exams` | `app/(main)/mock-exams/page.tsx` | Browse and filter available mock exams |
-| `/mock-exams/[id]` | `app/(main)/mock-exams/[id]/page.tsx` | Exam detail, start attempt, or review results |
+| `/past-papers` | `app/(learn)/past-papers/page.tsx` | Browse and filter available past papers |
+| `/past-papers/[id]/solutions` | `app/(learn)/past-papers/[id]/solutions/page.tsx` | Exam detail, start attempt, or review results |
 
 <Note>
-Mock exam pages are inside the `(main)` route group. Browsing exams is public; taking exams and viewing solutions require authentication.
+Mock exam pages are inside the `(learn)` route group. Browsing exams is public; taking exams and viewing solutions require authentication.
 </Note>
 
 ---

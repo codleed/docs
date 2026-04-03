@@ -7,6 +7,10 @@ description: Retrieve the list of classes (grades) available across all boards.
 
 The Classes API returns all board-class (grade) combinations configured in the system. Each class belongs to a specific board and contains subjects.
 
+<Warning>
+This router is defined in `backend/src/routes/classes.ts` but is **not currently mounted** in `server.ts`. The classes data is instead served through the admin content endpoints and the learn routes.
+</Warning>
+
 ---
 
 ## List classes
@@ -39,14 +43,14 @@ curl http://localhost:3001/api/classes
     {
       "id": 1,
       "boardId": 1,
-      "name": "Class 10",
-      "slug": "class-10"
+      "name": "9th",
+      "slug": "9"
     },
     {
       "id": 2,
       "boardId": 1,
-      "name": "Class 11",
-      "slug": "class-11"
+      "name": "10th",
+      "slug": "10"
     }
   ]
 }

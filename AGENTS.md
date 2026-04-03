@@ -51,27 +51,27 @@ When a hash doesn't match, the agent knows that item needs documentation review.
 ### Health (`/api/health`)
 | Endpoint | Doc File | Status | Hash | Notes |
 |----------|----------|--------|------|-------|
-| GET /api/health | api/health.mdx | `pending` | — | |
+| GET /api/health | api/health.mdx | `documented` | — | |
 
-### Boards (`/api/boards`)
+### Boards (`/api/boards`) — Not mounted in server.ts
 | Endpoint | Doc File | Status | Hash | Notes |
 |----------|----------|--------|------|-------|
-| GET /api/boards | api/boards.mdx | `pending` | — | |
+| GET /api/boards | api/boards.mdx | `documented` | — | Router exists but not mounted |
 
-### Classes (`/api/classes`)
+### Classes (`/api/classes`) — Not mounted in server.ts
 | Endpoint | Doc File | Status | Hash | Notes |
 |----------|----------|--------|------|-------|
-| GET /api/classes | api/classes.mdx | `pending` | — | |
+| GET /api/classes | api/classes.mdx | `documented` | — | Router exists but not mounted |
 
-### Subjects (`/api/subjects`)
+### Subjects (`/api/subjects`) — Not mounted in server.ts
 | Endpoint | Doc File | Status | Hash | Notes |
 |----------|----------|--------|------|-------|
-| GET /api/subjects | api/subjects.mdx | `pending` | — | |
+| GET /api/subjects | api/subjects.mdx | `documented` | — | Router exists but not mounted |
 
-### Institutes (`/api/institutes`)
+### Institutes (`/api/institutes`) — Not mounted in server.ts
 | Endpoint | Doc File | Status | Hash | Notes |
 |----------|----------|--------|------|-------|
-| GET /api/institutes | api/institutes.mdx | `pending` | — | |
+| GET /api/institutes | api/institutes.mdx | `documented` | — | Router exists but not mounted |
 
 ### Learn (`/api/learn`)
 | Endpoint | Doc File | Status | Hash | Notes |
@@ -119,15 +119,19 @@ When a hash doesn't match, the agent knows that item needs documentation review.
 | POST /api/forum/replies/:replyId/vote | api/forum.mdx | `documented` | — | Rate limited |
 | POST /api/forum/replies/:replyId/accept | api/forum.mdx | `documented` | — | Rate limited |
 
-### Profile (`/api/profile`)
+### Profile (`/api/users`)
 | Endpoint | Doc File | Status | Hash | Notes |
 |----------|----------|--------|------|-------|
-| PUT /api/profile/me/profile-image | api/profile.mdx | `pending` | — | MinIO, max 2MB |
+| PUT /api/users/me/profile-image | api/profile.mdx | `documented` | — | MinIO, max 2MB |
 
-### Chapter Media (`/api/chapter-media`)
+### Chapter Media (`/api/admin/content`)
 | Endpoint | Doc File | Status | Hash | Notes |
 |----------|----------|--------|------|-------|
-| POST /api/chapter-media/chapters/:chapterId/summary-media | api/chapter-media.mdx | `pending` | — | Admin only, MinIO, max 10MB |
+| POST /api/admin/content/chapters/:chapterId/summary-media | api/chapter-media.mdx | `documented` | — | Admin only, MinIO, max 10MB |
+| POST /api/admin/content/chapters/:chapterId/presigned-upload | api/chapter-media.mdx | `documented` | — | Get presigned PUT URL |
+| POST /api/admin/content/chapters/:chapterId/media/confirm | api/chapter-media.mdx | `documented` | — | Confirm presigned upload |
+| GET /api/admin/content/chapters/:chapterId/media | api/chapter-media.mdx | `documented` | — | List media for chapter |
+| DELETE /api/admin/content/chapters/:chapterId/media/:mediaId | api/chapter-media.mdx | `documented` | — | Delete media |
 
 ### Admin (`/api/admin`) — All require admin role
 | Endpoint | Doc File | Status | Hash | Notes |
@@ -341,7 +345,7 @@ When a hash doesn't match, the agent knows that item needs documentation review.
 | ai_usage_logs | architecture/database.mdx | `documented` | — | |
 | forum_threads | architecture/database.mdx | `documented` | — | |
 | forum_replies | architecture/database.mdx | `documented` | — | |
-| forum_votes | architecture/database.mdx | `documented` | — | |
+| forum_reply_votes | architecture/database.mdx | `documented` | — | Renamed from forum_votes |
 | mock_exams | architecture/database.mdx | `documented` | — | |
 | chapter_title_aliases | architecture/database.mdx | `documented` | — | |
 | chapter_summary_links | architecture/database.mdx | `documented` | — | |
@@ -351,6 +355,7 @@ When a hash doesn't match, the agent knows that item needs documentation review.
 | admin_notifications | architecture/database.mdx | `documented` | — | |
 | admin_settings | architecture/database.mdx | `documented` | — | |
 | institutes | architecture/database.mdx | `documented` | — | |
+| content_sources | architecture/database.mdx | `documented` | — | |
 
 ---
 
@@ -359,10 +364,16 @@ When a hash doesn't match, the agent knows that item needs documentation review.
 | Spec File | Doc File | Status | Hash | Notes |
 |-----------|----------|--------|------|-------|
 | smoke.spec.ts | dev/testing.mdx | `documented` | — | |
+| auth-resilience.spec.ts | dev/testing.mdx | `documented` | — | |
 | phase1-forum-dashboard-chrome.spec.ts | dev/testing.mdx | `documented` | — | |
 | phase2-auth-dashboard.spec.ts | dev/testing.mdx | `documented` | — | |
 | phase3-auth-layout-routes.spec.ts | dev/testing.mdx | `documented` | — | |
-| auth-resilience.spec.ts | dev/testing.mdx | `documented` | — | |
+| theme-light.spec.ts | dev/testing.mdx | `documented` | — | |
+| ui-quality.spec.ts | dev/testing.mdx | `documented` | — | |
+| stats-screen.spec.ts | dev/testing.mdx | `documented` | — | |
+| student-subject-graph-performance.spec.ts | dev/testing.mdx | `documented` | — | |
+| student-subject-graph.spec.ts | dev/testing.mdx | `documented` | — | |
+| student-subject-page-baseline-performance.spec.ts | dev/testing.mdx | `documented` | — | |
 | admin-left-rail.spec.ts | dev/testing.mdx | `documented` | — | |
 | admin-phase1-shell.spec.ts | dev/testing.mdx | `documented` | — | |
 | admin-phase2-moderation-users.spec.ts | dev/testing.mdx | `documented` | — | |
@@ -376,12 +387,7 @@ When a hash doesn't match, the agent knows that item needs documentation review.
 | admin-summary-editor-performance.spec.ts | dev/testing.mdx | `documented` | — | |
 | admin-summary-graph.spec.ts | dev/testing.mdx | `documented` | — | |
 | admin-summary-wikilinks.spec.ts | dev/testing.mdx | `documented` | — | |
-| stats-screen.spec.ts | dev/testing.mdx | `documented` | — | |
-| student-subject-graph.spec.ts | dev/testing.mdx | `documented` | — | |
-| student-subject-graph-performance.spec.ts | dev/testing.mdx | `documented` | — | |
-| student-subject-page-baseline-performance.spec.ts | dev/testing.mdx | `documented` | — | |
-| theme-light.spec.ts | dev/testing.mdx | `documented` | — | |
-| ui-quality.spec.ts | dev/testing.mdx | `documented` | — | |
+| global-setup.mjs | dev/testing.mdx | `documented` | — | Test setup helper |
 
 ---
 
@@ -389,10 +395,10 @@ When a hash doesn't match, the agent knows that item needs documentation review.
 
 | Source File | Doc File | Status | Hash | Notes |
 |-------------|----------|--------|------|-------|
-| docker-compose.yml | infra/docker.mdx | `documented` | — | Postgres, Redis, MinIO, PgBouncer, Nginx |
-| infra/nginx.conf | infra/load-balancing.mdx | `pending` | — | |
-| backend/src/lib/queue.ts | infra/background-jobs.mdx | `pending` | — | BullMQ |
-| backend/src/lib/cache/cache.service.ts | infra/caching.mdx | `pending` | — | |
+| docker-compose.yml | infra/docker.mdx | `documented` | — | Postgres, PgBouncer, Redis, MinIO, Nginx, Backend |
+| infra/nginx.conf | infra/load-balancing.mdx | `documented` | — | |
+| backend/src/lib/queue.ts | infra/background-jobs.mdx | `documented` | — | BullMQ |
+| backend/src/lib/cache/cache.service.ts | infra/caching.mdx | `documented` | — | |
 | backend/.env.example | infra/environment.mdx | `documented` | — | |
 | frontend/.env.local.example | infra/environment.mdx | `documented` | — | |
 
@@ -405,9 +411,9 @@ When a hash doesn't match, the agent knows that item needs documentation review.
 | Project setup | dev/setup.mdx | `documented` | — |
 | Testing overview | dev/testing.mdx | `documented` | — |
 | Contributing | dev/contributing.mdx | `documented` | — |
-| Code style | dev/code-style.mdx | `pending` | — |
-| Database workflow | dev/database-guide.mdx | `pending` | — |
-| E2E testing guide | dev/e2e-testing.mdx | `pending` | — |
+| Code style | dev/code-style.mdx | `documented` | — |
+| Database workflow | dev/database-guide.mdx | `documented` | — |
+| E2E testing guide | dev/e2e-testing.mdx | `documented` | — |
 
 ---
 
@@ -474,6 +480,16 @@ git diff 80339009530c6af406919982486a0aea0487517f..HEAD --name-only
 
 | Date | Change | Affected Items |
 |------|--------|----------------|
+| 2026-04-04 | Synced documentation with current learningopk codebase | All docs updated to match 22 tables, correct mount points, all endpoints |
+| 2026-04-04 | Fixed AI Chat mount point | `/api/ai-chat/*` → `/api/ai/*` in ai-chat.mdx, overview.mdx |
+| 2026-04-04 | Fixed Profile API path | `/api/profile/me/profile-image` → `/api/users/me/profile-image` in auth.mdx |
+| 2026-04-04 | Added missing chapter-media endpoints | presigned-upload, confirm, list, delete |
+| 2026-04-04 | Added missing admin endpoints | subjects delete, quiz CRUD, quiz-questions CRUD, flashcards CRUD/reorder, jobs |
+| 2026-04-04 | Updated table count | 28 → 22 tables (actual count from schema.ts) |
+| 2026-04-04 | Updated forum_votes → forum_reply_votes | Table renamed in codebase |
+| 2026-04-04 | Added content_sources table | New table tracked |
+| 2026-04-04 | Updated E2E test count | 24 → 25 specs (added global-setup.mjs) |
+| 2026-04-04 | Marked boards/classes/subjects/institutes as not mounted | Routers exist but not mounted in server.ts |
 | 2026-03-30 | Initial documentation creation | All 62 API endpoints, 86 components, 28 tables, 24 E2E specs |
 | 2026-03-30 | Status update — documented items identified | 151 items updated from `pending` to `documented` |
 | 2026-03-30 | Created frontend/auth.mdx, forum.mdx, mock-exams.mdx, stats.mdx, design-system.mdx | 39 components updated from `pending` to `documented` |
@@ -484,4 +500,3 @@ git diff 80339009530c6af406919982486a0aea0487517f..HEAD --name-only
 | 2026-03-30 | Created features/gamification, ai-tutor, forum, progress docs | 4 feature docs created |
 | 2026-03-30 | Updated docs.json navigation | 6 tabs, 16 groups, 40+ pages |
 | 2026-03-30 | Removed Mintlify starter kit files | 6 directories, 4 files deleted |
-| 2026-03-30 | Recorded baseline commit for change tracking | Commit `803390...` |

@@ -13,7 +13,7 @@ The stats page provides detailed analytics on a student's learning performance. 
 
 | Route | Page | Description |
 |-------|------|-------------|
-| `/stats` | `app/(main)/stats/page.tsx` | Full stats dashboard |
+| `/stats` | `app/(dashboard)/stats/page.tsx` | Full stats dashboard |
 
 <Note>
 The stats page requires authentication. It fetches data from `GET /api/progress/dashboard` and `GET /api/progress/dashboard/:boardSlug/:grade/:subjectSlug` for subject-specific detail.
@@ -309,6 +309,7 @@ import { StatsGoals } from "@/components/stats/stats-goals";
 ```
 stats/
 └── page.tsx
+    ├── StatsPageClient
     ├── StatsHeroKpiStrip (4 KPI cards)
     ├── StatsStudyVolumeChart (activity bar chart)
     ├── StatsQuizPerformanceChart (score trend)
@@ -317,7 +318,10 @@ stats/
     │   └── Subject Card (per subject)
     │       └── SubjectProgressOverview (chapter breakdown)
     ├── StatsConsistencyCalendar (heatmap)
-    ├── DailyStreakHeatmap (streak grid)
+    ├── ActivityHeatmap (daily activity)
+    ├── PerformanceTable (detailed metrics)
+    ├── SubjectTimeSplitChart (time distribution)
+    ├── WeeklyStudyTimeChart (weekly hours)
     ├── StatsWeeklyGoals (goal progress bars)
     ├── WeeklyTrend (week-over-week comparison)
     ├── StatsFocusAreas (improvement suggestions)

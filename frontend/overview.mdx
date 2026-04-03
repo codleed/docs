@@ -21,22 +21,33 @@ The LearningoPK frontend is built with **Next.js 16** using the App Router. It u
 frontend/
 ├── app/                    # App Router pages and layouts
 │   ├── (auth)/             # Auth pages (login, register)
-│   ├── (main)/             # Main app pages
-│   │   ├── dashboard/      # Student dashboard
-│   │   ├── learn/          # Learning pages
-│   │   ├── quiz/           # Quiz pages
-│   │   ├── ai-tutor/       # AI chat interface
-│   │   └── forum/          # Community forum
-│   ├── (admin)/            # Admin panel
+│   ├── (dashboard)/        # Student dashboard, subjects, stats, calendar, settings
+│   ├── (learn)/            # Learning pages: [board]/[grade]/[subject]/[chapter], past-papers
+│   ├── admin/              # Admin panel (17 sections)
+│   ├── ai-tutor/           # AI chat interface
+│   ├── forum/              # Community forum
+│   ├── design-system-demo/ # Design system showcase
 │   ├── layout.tsx          # Root layout
 │   └── page.tsx            # Landing page
 ├── src/
 │   ├── components/
-│   │   └── ui/             # Reusable UI components (Button, Card, Badge, Input)
+│   │   ├── ui/             # 24 shadcn-style primitives
+│   │   ├── admin/          # 50 admin components
+│   │   ├── ai/             # AI tutor + unified chat
+│   │   ├── auth/           # 11 auth components
+│   │   ├── common/         # 12 shared components
+│   │   ├── dashboard/      # 10 dashboard components
+│   │   ├── forum/          # 12 forum components
+│   │   ├── foundation/     # 9 foundation components
+│   │   ├── gamification/   # 7 gamification components
+│   │   ├── learn/          # 33 learning components
+│   │   ├── stats/          # 15 stats components
+│   │   └── settings/       # Settings components
 │   ├── hooks/              # Custom React hooks
-│   ├── lib/                # Utility functions and API client
-│   └── providers/          # Context providers
-├── tests/e2e/              # Playwright E2E tests
+│   ├── lib/                # 19 utility functions
+│   ├── design-system/      # Legacy (deprecated, re-exports ui/)
+│   └── styles/             # Global styles
+├── tests/e2e/              # 25 Playwright E2E specs
 └── public/                 # Static assets
 ```
 
@@ -62,7 +73,7 @@ The frontend communicates with the Express backend via `/api/*` endpoints. The N
     Chapter browsing, exercise viewing, and flashcard study.
   </Card>
   <Card title="Admin" icon="shield" href="/frontend/admin">
-    Content and user management panel.
+    Content and user management panel with 17 sections.
   </Card>
   <Card title="Stats" icon="chart-line" href="/frontend/stats">
     Performance analytics and progress tracking.
@@ -73,10 +84,10 @@ The frontend communicates with the Express backend via `/api/*` endpoints. The N
   <Card title="AI Tutor" icon="robot" href="/features/ai-tutor">
     AI-powered Socratic tutoring assistant.
   </Card>
-  <Card title="Settings" icon="settings" href="/frontend/settings">
+  <Card title="Settings" icon="settings" href="/frontend/dashboard">
     User preferences and account settings.
   </Card>
-  <Card title="Past Papers" icon="file-text" href="/frontend/past-papers">
+  <Card title="Past Papers" icon="file-text" href="/frontend/learn">
     Board exam past papers and solutions.
   </Card>
 </Columns>

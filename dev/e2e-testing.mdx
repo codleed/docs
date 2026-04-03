@@ -1,11 +1,11 @@
 ---
 title: "E2E Testing"
-description: "Playwright setup, 24 E2E specs overview, and guide for writing new tests"
+description: "Playwright setup, 25 E2E specs overview, and guide for writing new tests"
 ---
 
 ## Overview
 
-LearningoPK uses [Playwright](https://playwright.dev/) for end-to-end browser testing. The test suite covers 24 spec files spanning authentication flows, admin panels, student learning paths, forum interactions, and UI quality checks. Tests run sequentially with a single worker to avoid database state conflicts.
+LearningoPK uses [Playwright](https://playwright.dev/) for end-to-end browser testing. The test suite covers 25 spec files spanning authentication flows, admin panels, student learning paths, forum interactions, and UI quality checks. Tests run sequentially with a single worker to avoid database state conflicts.
 
 ## Playwright Configuration
 
@@ -108,7 +108,7 @@ pnpm --filter frontend test:e2e --ui
 
 ## Spec Files
 
-The suite contains 24 spec files:
+The suite contains 25 spec files:
 
 | Spec | Category | Description |
 |------|----------|-------------|
@@ -136,6 +136,7 @@ The suite contains 24 spec files:
 | `student-subject-page-baseline-performance.spec.ts` | Student | Subject page load benchmarks |
 | `theme-light.spec.ts` | UI | Light theme rendering |
 | `ui-quality.spec.ts` | UI | Visual regression, spacing, typography |
+| `global-setup.mjs` | Setup | Database seeding before test runs |
 
 ## Writing a New Test
 

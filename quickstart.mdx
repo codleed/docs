@@ -21,7 +21,7 @@ pnpm install
 
 ## Step 2: Start infrastructure services
 
-Spin up PostgreSQL 16, Redis 7, MinIO, and PgBouncer with a single command:
+Spin up PostgreSQL 16, Redis 7, MinIO, PgBouncer, and Nginx with a single command:
 
 ```bash
 pnpm docker:up
@@ -113,13 +113,17 @@ Navigate to [http://localhost:3000](http://localhost:3000) to see the LearningoP
 | `pnpm dev:all` | Start frontend + backend concurrently |
 | `pnpm dev:frontend` | Start Next.js dev server (port 3000) |
 | `pnpm dev:backend` | Start Express API server (port 3001) |
-| `pnpm docker:up` | Start PostgreSQL, Redis, MinIO containers |
+| `pnpm docker:up` | Start PostgreSQL, PgBouncer, Redis, MinIO, Nginx containers |
 | `pnpm docker:down` | Stop all containers |
+| `pnpm db:generate` | Generate Drizzle migrations |
 | `pnpm db:migrate` | Run Drizzle migrations |
 | `pnpm db:seed` | Seed database with sample content |
 | `pnpm db:studio` | Open Drizzle Studio (visual DB browser) |
+| `pnpm db:push` | Push schema directly (dev only) |
+| `pnpm db:clear` | Clear all database tables |
 | `pnpm lint` | Lint all packages |
 | `pnpm typecheck` | TypeScript check all packages |
+| `pnpm verify:services` | Health check all services |
 
 ## What's next?
 
@@ -143,7 +147,7 @@ Navigate to [http://localhost:3000](http://localhost:3000) to see the LearningoP
     icon="database"
     href="/architecture/database"
   >
-    Explore the 28 Drizzle ORM tables and their relationships.
+    Explore the 22 Drizzle ORM tables and their relationships.
   </Card>
   <Card
     title="Development Guide"

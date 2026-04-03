@@ -5,7 +5,11 @@ description: Retrieve the list of educational boards available in the platform.
 
 ## Overview
 
-The Boards API returns all educational boards (e.g., CBSE, ICSE) configured in the system. Boards are the top-level curriculum grouping — each board contains multiple classes.
+The Boards API returns all educational boards (e.g., Federal Board, Punjab Board, Sindh Board) configured in the system. Boards are the top-level curriculum grouping — each board contains multiple classes.
+
+<Warning>
+This router is defined in `backend/src/routes/boards.ts` but is **not currently mounted** in `server.ts`. The boards data is instead served through the admin content endpoints and the learn routes.
+</Warning>
 
 ---
 
@@ -38,13 +42,13 @@ curl http://localhost:3001/api/boards
   "boards": [
     {
       "id": 1,
-      "name": "CBSE",
-      "slug": "cbse"
+      "name": "Federal Board",
+      "slug": "federal"
     },
     {
       "id": 2,
-      "name": "ICSE",
-      "slug": "icse"
+      "name": "Punjab Board",
+      "slug": "punjab"
     }
   ]
 }

@@ -121,3 +121,123 @@ If the upload succeeds but the database insert fails, the newly uploaded object 
 <Note>
 Each upload creates a new media record. Multiple images can be attached to the same chapter. The `markdown` field in the response makes it easy to embed images into the chapter summary content.
 </Note>
+
+---
+
+## Get presigned upload URL
+
+Get a presigned PUT URL for direct browser-to-MinIO uploads.
+
+```bash
+POST /api/admin/content/chapters/:chapterId/presigned-upload
+```
+
+**Auth**: Admin
+
+### Request body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `fileName` | string | Yes | Original file name |
+| `mimeType` | string | Yes | MIME type (image/jpeg, image/png, image/webp, image/gif) |
+| `fileSize` | number | Yes | File size in bytes (max 10 MB) |
+
+### Response
+
+```json
+{
+  "uploadUrl": "https://minio:9000/learningo-media/...",
+  "objectKey": "chapters/42/user-abc123/diagram.png"
+}
+```
+
+---
+
+## Confirm presigned upload
+
+Confirm a presigned upload and create the database record.
+
+```bash
+POST /api/admin/content/chapters/:chapterId/media/confirm
+```
+
+**Auth**: Admin
+
+### Request body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `objectKey` | string | Yes | The object key returned from presigned upload |
+| `mimeType` | string | Yes | MIME type of the uploaded file |
+| `fileSize` | number | Yes | File size in bytes |
+
+### Response
+
+```json
+{
+  "asset": {
+    "id": 15,
+    "chapterId": 42,
+    "objectUrl": "https://storage.example.com/learningopk/chapters/42/user-abc123/diagram.png",
+    "mimeType": "image/png",
+    "fileSize": 245760,
+    "createdAt": "2026-03-30T12:00:00.000Z"
+  }
+}
+```
+
+---
+
+## List chapter media
+
+List all media files for a chapter.
+
+```bash
+GET /api/admin/content/chapters/:chapterId/media
+```
+
+**Auth**: Admin
+
+### Response
+
+```json
+{
+  "media": [
+    {
+      "id": 15,
+      "chapterId": 42,
+      "objectUrl": "https://storage.example.com/learningopk/chapters/42/user-abc123/diagram.png",
+      "mimeType": "image/png",
+      "fileSize": 245760,
+      "createdAt": "2026-03-30T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+## Delete chapter media
+
+Delete a media file from both MinIO and the database.
+
+```bash
+DELETE /api/admin/content/chapters/:chapterId/media/:mediaId
+```
+
+**Auth**: Admin
+
+### Response
+
+```json
+{
+  "success": true
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `404` | Media file not found |
+| `500` | Failed to delete from MinIO or database |

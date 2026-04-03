@@ -7,6 +7,10 @@ description: Retrieve the list of institutes associated with the platform.
 
 The Institutes API returns all educational institutes registered in the system. Institutes are ordered alphabetically by name.
 
+<Warning>
+This router is defined in `backend/src/routes/institutes.ts` but is **not currently mounted** in `server.ts`. The institutes data is available through the admin content endpoints.
+</Warning>
+
 ---
 
 ## List institutes
@@ -38,11 +42,11 @@ curl http://localhost:3001/api/institutes
   "institutes": [
     {
       "id": 1,
-      "name": "Delhi Public School"
+      "name": "Cadet College Hasan Abdal"
     },
     {
       "id": 2,
-      "name": "Kendriya Vidyalaya"
+      "name": "Punjab College"
     }
   ]
 }

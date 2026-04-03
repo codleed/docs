@@ -3,7 +3,7 @@ title: "Database"
 description: "PostgreSQL database schema for LearningoPK — 28 tables covering users, curriculum, content, assessments, AI interactions, community, and administration."
 ---
 
-The LearningoPK database uses **PostgreSQL 16** with **Drizzle ORM** for type-safe queries and migrations. The schema is defined in `backend/src/lib/db/schema.ts` and consists of 28 tables with 18 custom PostgreSQL enums.
+The LearningoPK database uses **PostgreSQL 16** with **Drizzle ORM** for type-safe queries and migrations. The schema is defined in `backend/src/lib/db/schema.ts` and consists of 22 tables with 18 custom PostgreSQL enums.
 
 <Note>
   PostgreSQL is exposed on host port **5433** (mapped from container port 5432) to avoid conflicts with local PostgreSQL installations. Connections go through **PgBouncer** on port 6432 in transaction pooling mode.
@@ -186,7 +186,7 @@ The schema defines 18 PostgreSQL enums for type-safe constrained values:
 | `user_role` | student, admin |
 | `grade` | 9, 10 |
 | `difficulty` | easy, medium, hard |
-| `exercise_type` | mcq, short, long, numerical |
+| `exercise_type` | mcq, short, long, numerical, fill_in_blanks |
 | `quiz_type` | chapter_quiz, mock_exam |
 | `answer_option` | a, b, c, d |
 | `ai_message_role` | user, assistant |

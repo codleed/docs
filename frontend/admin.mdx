@@ -17,26 +17,52 @@ The admin panel provides tools for managing curriculum content, users, and platf
 
 ## Sections
 
+### Command Center
+
+- **Overview** — High-level KPIs, moderation alerts, recent admin activity
+- **Analytics** — Active students, quiz attempts, average scores, subject performance
+
 ### Content Management
 
-- **Chapters** — Create, edit, publish/unpublish chapters
-- **Exercises** — Add exercises with solutions to chapters
-- **Quizzes** — Build quizzes with MCQ questions
-- **Flashcards** — Create flashcard sets for chapters
-- **Mock Exams** — Set up board-pattern mock exams
+- **Boards** — Create, edit, delete education boards
+- **Classes** — Create, edit, delete classes within boards
+- **Subjects** — Create, edit, delete subjects per class
+- **Chapters** — Create, edit, publish/unpublish, rename chapters with wiki-link management
+- **Exercises** — Add exercises (mcq/short/long/numerical/fill_in_blanks) with solutions
+- **Quizzes** — Build quizzes with MCQ questions, manage quiz metadata
+- **Quiz Questions** — Add, edit, delete questions per quiz
+- **Flashcards** — Create, edit, delete, reorder flashcards per chapter
 
 ### User Management
 
-- View all registered users
-- Filter by role (student / admin)
-- Update user roles
+- View all registered users with search, role, and status filters
+- Update user roles (promote/demote)
+- Suspend/reactivate users with reason tracking
 
-### Analytics Dashboard
+### Community Moderation
 
-- Total and active user counts
-- Subject-wise engagement metrics
-- Quiz performance distributions
-- Chapter completion rates
+- View and pin/unpin forum threads
+- Resolve moderation flags with notes
+- Admin thread view with solved/pinned/flag filters
+
+### Notifications
+
+- Create broadcast notifications (all/students/admins)
+- View notification history
+
+### Settings
+
+- Update platform settings: forum auto-lock hours, quiz pass threshold, maintenance banner
+
+### Audit Logs
+
+- Content, forum, moderation, users, notifications, and settings audit trails
+- Aggregated view with scope, status, and search filters
+
+### Jobs
+
+- View queue stats (waiting, active, completed, failed) per queue
+- Retry failed jobs
 
 ## Access Control
 
@@ -45,3 +71,58 @@ The admin panel route is protected by role-based access control. Non-admin users
 ```
 /admin/* → Requires role: admin
 ```
+
+## Component Inventory
+
+The admin panel uses **50 components** across `src/components/admin/`:
+
+| Component | Purpose |
+|-----------|---------|
+| `action-button` | Reusable admin action button |
+| `admin-analytics-panel` | Analytics overview panel |
+| `admin-analytics-subject-table` | Subject performance table |
+| `admin-audit-log-list` | Audit log list view |
+| `admin-audit-panel` | Audit panel container |
+| `admin-audit-table` | Audit log table |
+| `admin-command-center-panel` | Command center KPIs |
+| `admin-community-panel` | Community management |
+| `admin-content-panel` | Content management |
+| `admin-curriculum-builder` | Full curriculum tree builder |
+| `admin-forum-panel` | Forum management |
+| `admin-guard` | Route protection wrapper |
+| `admin-moderation-panel` | Moderation queue |
+| `admin-notifications-panel` | Notifications management |
+| `admin-notifications-table` | Notification table |
+| `admin-settings-panel` | Settings management |
+| `admin-settings-table` | Settings table |
+| `admin-users-panel` | User management |
+| `admin-users-table` | User table |
+| `breadcrumb` | Admin breadcrumb navigation |
+| `chapter-exercise-manager` | Exercise CRUD for chapter |
+| `chapter-flashcard-manager` | Flashcard CRUD for chapter |
+| `chapter-link-graph` | Chapter wiki-link graph visualization |
+| `chapter-publish-table` | Chapter publish status table |
+| `chapter-publish-toggle` | Publish toggle control |
+| `chapter-quiz-manager` | Quiz management for chapter |
+| `codemirror-markdown-editor` | CodeMirror-based markdown editor |
+| `community-thread-health-table` | Thread health metrics |
+| `content-list-table` | Content listing table |
+| `content-stats-strip` | Content KPI strip |
+| `content-tabs` | Content section tabs |
+| `entity-detail-panel` | Generic entity detail view |
+| `entity-tree` | Tree view for curriculum hierarchy |
+| `exercise-constants` | Exercise type constants |
+| `exercise-section-card` | Exercise section display |
+| `exercise-type-tabs` | Exercise type selector |
+| `fill-in-blanks-editor` | Fill-in-blanks question editor |
+| `form-card` | Admin form card wrapper |
+| `form-field` | Admin form field |
+| `forum-moderation-table` | Forum moderation table |
+| `github-markdown-editor` | GitHub-flavored markdown editor |
+| `moderation-queue-table` | Moderation queue table |
+| `moderation-resolve-action` | Resolve flag action |
+| `numerical-visualization-editor` | Numerical question editor |
+| `page-header` | Admin page header |
+| `quick-actions` | Quick action buttons |
+| `stats-strip` | Stats display strip |
+| `thread-pin-toggle` | Thread pin toggle |

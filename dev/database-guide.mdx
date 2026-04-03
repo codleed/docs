@@ -60,7 +60,7 @@ The schema is passed to `drizzle()` to enable relational query API (e.g., `db.qu
 
 ## Schema Structure
 
-The schema in `backend/src/lib/db/schema.ts` defines 28 tables using `pgTable()`:
+The schema in `backend/src/lib/db/schema.ts` defines 22 tables using `pgTable()`:
 
 ```typescript
 import {
@@ -150,7 +150,7 @@ Always review generated migrations before applying. Drizzle Kit generates `ALTER
 
 ### Migration History
 
-The project has 13 migrations (0000–0012):
+The project has 19 migrations (0000–0014, with some duplicates):
 
 ```
 backend/drizzle/
@@ -168,6 +168,10 @@ backend/drizzle/
 ├── 0011_lucky_black_bird.sql
 ├── 0011_quiz_questions_chapter.sql
 ├── 0012_add_quiz_attempt_type.sql
+├── 0012_flaky_rictor.sql
+├── 0013_fix_subject_board_class_cascade.sql
+├── 0013_tearful_spot.sql
+├── 0014_quiz_questions_explanation_nullable.sql
 └── meta/
     ├── _journal.json
     └── 000*_snapshot.json
