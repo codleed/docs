@@ -1,0 +1,214 @@
+---
+title: AI Context API
+description: AI learning context management — personalized learning paths, weak/strong topics, and explanation preferences.
+---
+
+## Overview
+
+The AI Context API manages each student's personalized AI learning experience. It tracks weak areas, strong topics, and preferred explanation styles to help the AI tutor provide more relevant assistance.
+
+---
+
+## Get learning path
+
+Retrieve personalized chapter recommendations based on the user's board, class, and identified weak areas.
+
+```bash
+GET /api/ai/context/learning-path
+```
+
+**Auth**: Student
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "recommendedChapters": [
+      {
+        "id": 5,
+        "chapterNumber": 5,
+        "title": "Newton's Laws of Motion",
+        "subjectName": "Physics",
+        "reason": "Based on your weak topics in kinematics"
+      }
+    ]
+  }
+}
+```
+
+### Notes
+- Returns empty array if no learning path is found
+- Uses user's session board/class information
+- Calls `learningPathService.getLearningPath()` for recommendations
+
+---
+
+## Get AI context
+
+Retrieve the current user's AI learning context.
+
+```bash
+GET /api/ai/context/context
+```
+
+**Auth**: Student
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "weakTopics": ["kinematics", "vectors"],
+    "strongTopics": ["algebra", "geometry"],
+    "preferredExplanationStyle": "step-by-step",
+    "lastConceptsDiscussed": ["force", "acceleration"],
+    "updatedAt": "2026-04-10T10:00:00.000Z"
+  }
+}
+```
+
+### Default values
+
+If no context has been set:
+- `weakTopics`: `[]`
+- `strongTopics`: `[]`
+- `preferredExplanationStyle`: `"balanced"`
+- `lastConceptsDiscussed`: `[]`
+- `updatedAt`: `null`
+
+---
+
+## Update AI context
+
+Update the user's AI learning preferences and tracked topics.
+
+```bash
+PATCH /api/ai/context/context
+```
+
+**Auth**: Student
+
+### Request body
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `preferredExplanationStyle` | string? | One of: `"balanced"`, `"visual"`, `"step-by-step"`, `"examples"`, `"analogies"` |
+| `weakTopics` | string[]? | Topics where student needs help (max 20, each 1-200 chars) |
+| `strongTopics` | string[]? | Topics student understands well (max 20, each 1-200 chars) |
+
+### Example
+
+```bash
+curl -X PATCH http://localhost:3001/api/ai/context/context \
+  -H "Content-Type: application/json" \
+  -H "Cookie: better-auth.session_token=..." \
+  -d '{
+    "preferredExplanationStyle": "step-by-step",
+    "weakTopics": ["thermodynamics", "waves"],
+    "strongTopics": ["mechanics", "optics"]
+  }'
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "weakTopics": ["thermodynamics", "waves"],
+    "strongTopics": ["mechanics", "optics"],
+    "preferredExplanationStyle": "step-by-step",
+    "lastConceptsDiscussed": [],
+    "updatedAt": "2026-04-10T10:00:00.000Z"
+  }
+}
+```
+
+### Notes
+- Uses upsert operation (creates or updates)
+- Topics are normalized to lowercase
+
+---
+
+## Remove weak topic
+
+Remove a topic from the weak topics list.
+
+```bash
+DELETE /api/ai/context/context/weak-topics/:topic
+```
+
+**Auth**: Student
+
+### Path parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `topic` | string | Topic to remove (1-200 chars, URI-decoded) |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "removed": "thermodynamics"
+  }
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid topic parameter |
+
+---
+
+## Remove strong topic
+
+Remove a topic from the strong topics list.
+
+```bash
+DELETE /api/ai/context/context/strong-topics/:topic
+```
+
+**Auth**: Student
+
+### Path parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `topic` | string | Topic to remove (1-200 chars, URI-decoded) |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "removed": "algebra"
+  }
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid topic parameter |
+
+---
+
+## Explanation Styles
+
+| Style | Description |
+|-------|-------------|
+| `balanced` | Mix of conceptual explanation and examples |
+| `visual` | Emphasis on diagrams and visual representations |
+| `step-by-step` | Detailed procedural breakdowns |
+| `examples` | Multiple worked examples |
+| `analogies` | Relatable real-world comparisons |

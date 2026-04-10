@@ -1,0 +1,217 @@
+---
+title: Notes API
+description: Student notes CRUD — create, read, update, delete personal study notes.
+---
+
+## Overview
+
+The Notes API allows students to create, manage, and search their personal study notes. Notes can be associated with specific subjects and chapters for organized learning.
+
+---
+
+## List notes
+
+Retrieve all notes for the authenticated user, with optional filtering and search.
+
+```bash
+GET /api/notes
+```
+
+**Auth**: Student
+
+### Query parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `subjectId` | number? | Filter by subject ID |
+| `chapterId` | number? | Filter by chapter ID |
+| `q` | string? | Search query (max 200 chars) — searches title and content |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "title": "Important Formula Derivations",
+      "content": "Newton's second law...",
+      "subjectId": 5,
+      "chapterId": 12,
+      "tags": ["physics", "formulas"],
+      "createdAt": "2026-03-28T14:00:00.000Z",
+      "updatedAt": "2026-03-28T14:00:00.000Z",
+      "subjectName": "Physics",
+      "chapterTitle": "Newton's Laws"
+    }
+  ]
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid query parameters |
+| `500` | Internal server error |
+
+---
+
+## Create note
+
+Create a new personal note.
+
+```bash
+POST /api/notes
+```
+
+**Auth**: Student
+
+### Request body
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `title` | string | Note title (required, 1-500 chars) |
+| `content` | string | Note content (required, 1-50000 chars) |
+| `subjectId` | number? | Associated subject ID (optional) |
+| `chapterId` | number? | Associated chapter ID (optional) |
+| `tags` | string[]? | Tags array (max 20 tags) |
+
+### Example
+
+```bash
+curl -X POST http://localhost:3001/api/notes \
+  -H "Content-Type: application/json" \
+  -H "Cookie: better-auth.session_token=..." \
+  -d '{
+    "title": "Key Concepts from Chapter 1",
+    "content": "Vector quantities have both magnitude and direction...",
+    "subjectId": 5,
+    "tags": ["physics", "vectors"]
+  }'
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "userId": 42,
+    "title": "Key Concepts from Chapter 1",
+    "content": "Vector quantities have both magnitude and direction...",
+    "subjectId": 5,
+    "chapterId": null,
+    "tags": ["physics", "vectors"],
+    "createdAt": "2026-04-10T10:00:00.000Z",
+    "updatedAt": "2026-04-10T10:00:00.000Z"
+  }
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid note data |
+| `500` | Internal server error |
+
+---
+
+## Update note
+
+Update an existing note (only the note owner can update).
+
+```bash
+PUT /api/notes/:id
+```
+
+**Auth**: Student (owner only)
+
+### Path parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | number | Note ID |
+
+### Request body
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `title` | string? | New title (1-500 chars) |
+| `content` | string? | New content (1-50000 chars) |
+| `subjectId` | number? | New subject ID (use `null` to clear) |
+| `chapterId` | number? | New chapter ID (use `null` to clear) |
+| `tags` | string[]? | New tags array |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "userId": 42,
+    "title": "Updated Title",
+    "content": "Updated content...",
+    "subjectId": 5,
+    "chapterId": 12,
+    "tags": ["updated", "physics"],
+    "createdAt": "2026-04-10T10:00:00.000Z",
+    "updatedAt": "2026-04-10T11:30:00.000Z"
+  }
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid note ID or data |
+| `404` | Note not found or not owned by user |
+| `500` | Internal server error |
+
+---
+
+## Delete note
+
+Delete a note (only the note owner can delete).
+
+```bash
+DELETE /api/notes/:id
+```
+
+**Auth**: Student (owner only)
+
+### Path parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | number | Note ID |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": null
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid note ID |
+| `404` | Note not found or not owned by user |
+| `500` | Internal server error |
+
+---
+
+## Notes
+
+- Full-text search uses PostgreSQL `to_tsvector` and `plainto_tsquery`
+- Setting `subjectId` or `chapterId` to `null` clears the association
+- No rate limiting on this endpoint

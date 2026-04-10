@@ -1,0 +1,94 @@
+---
+title: Leaderboard API
+description: Student rankings — view leaderboards by XP, streak, or quiz scores across global, board, or school scopes.
+---
+
+## Overview
+
+The Leaderboard API provides student rankings across different scopes and metrics. Students can view how they compare with peers based on XP, streak, or quiz performance.
+
+---
+
+## Get leaderboard
+
+Retrieve ranked student leaderboard with filtering options.
+
+```bash
+GET /api/leaderboard
+```
+
+**Auth**: Student
+
+### Query parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `scope` | string | `"global"` | Ranking scope: `"global"`, `"board"`, `"school"` |
+| `metric` | string | `"xp"` | Ranking metric: `"xp"`, `"streak"`, `"quizzes"` |
+
+### Example
+
+```bash
+curl -X GET "http://localhost:3001/api/leaderboard?scope=board&metric=streak" \
+  -H "Cookie: better-auth.session_token=..."
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "scope": "board",
+    "metric": "streak",
+    "rankings": [
+      {
+        "rank": 1,
+        "userId": 42,
+        "userName": "Ali Ahmed",
+        "avatar": "https://...",
+        "streak": 45,
+        "xp": 1250,
+        "quizzesCompleted": 89
+      },
+      {
+        "rank": 2,
+        "userId": 18,
+        "userName": "Sara Khan",
+        "avatar": "https://...",
+        "streak": 38,
+        "xp": 1100,
+        "quizzesCompleted": 72
+      }
+    ],
+    "userRank": {
+      "rank": 15,
+      "streak": 12,
+      "xp": 450
+    }
+  }
+}
+```
+
+### Response fields
+
+| Field | Description |
+|-------|-------------|
+| `rankings` | Array of top users sorted by selected metric |
+| `userRank` | Current user's rank (included if authenticated) |
+| `rank` | Position in leaderboard (1 = top) |
+| `xp` | Total XP earned |
+| `streak` | Current streak days |
+| `quizzesCompleted` | Total quizzes attempted |
+
+### Scope behavior
+
+| Scope | Description |
+|-------|-------------|
+| `global` | All students across all boards |
+| `board` | Students in the same board |
+| `school` | Students in the same institute/school |
+
+### Notes
+- Results are paginated (default limit: 50)
+- Leaderboard updates in real-time as students earn XP

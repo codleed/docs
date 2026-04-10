@@ -103,6 +103,109 @@ curl -X POST http://localhost:3001/api/quiz/submit \
 | `404` | Quiz not found |
 | `422` | Quiz has no questions to score |
 
+---
+
+## Create Quiz Duel Challenge
+
+Create a peer-to-peer quiz challenge to compete with another student.
+
+```bash
+POST /api/quiz/challenges
+```
+
+**Auth**: Student
+
+### Request body
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `quizId` | number | The quiz ID to challenge with |
+| `opponentId` | number | User ID of the student to challenge |
+| `timeLimit` | number? | Time limit in minutes (default: 15) |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "challengeId": "550e8400-e29b-41d4-a716-446655440000",
+    "quizId": 5,
+    "challenger": {
+      "userId": 1,
+      "name": "Ali Ahmed"
+    },
+    "opponent": {
+      "userId": 2,
+      "name": "Sara Khan"
+    },
+    "status": "pending",
+    "expiresAt": "2026-04-11T12:00:00.000Z"
+  }
+}
+```
+
+### Notes
+- Opponent receives a notification to accept/decline
+- Challenge expires after 24 hours if not accepted
+
+---
+
+## Get Quiz Duel Challenge
+
+Retrieve details of a specific quiz duel challenge.
+
+```bash
+GET /api/quiz/challenges/:challengeId
+```
+
+**Auth**: Student
+
+### Path parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `challengeId` | string | Challenge UUID |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "challengeId": "550e8400-e29b-41d4-a716-446655440000",
+    "quiz": {
+      "id": 5,
+      "title": "Physics Chapter 1 Quiz",
+      "questionCount": 10
+    },
+    "challenger": {
+      "userId": 1,
+      "name": "Ali Ahmed",
+      "score": 85
+    },
+    "opponent": {
+      "userId": 2,
+      "name": "Sara Khan",
+      "score": 90
+    },
+    "status": "completed",
+    "winner": "Sara Khan",
+    "completedAt": "2026-04-10T11:30:00.000Z"
+  }
+}
+```
+
+### Status values
+
+| Status | Description |
+|--------|-------------|
+| `pending` | Challenge created, awaiting opponent response |
+| `accepted` | Both players have accepted, quiz in progress |
+| `completed` | Both players have submitted, winner determined |
+| `expired` | Challenge expired without completion |
+| `declined` | Opponent declined the challenge |
+
 <Accordion title="Detailed error examples">
 
 **Question ID mismatch:**

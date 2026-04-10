@@ -241,3 +241,66 @@ DELETE /api/admin/content/chapters/:chapterId/media/:mediaId
 |--------|-----------|
 | `404` | Media file not found |
 | `500` | Failed to delete from MinIO or database |
+
+---
+
+## Upload Chapter Cover Image
+
+Upload a cover image for a chapter (displayed in chapter cards and headers).
+
+```bash
+POST /api/admin/content/chapters/:chapterId/cover-image
+```
+
+**Auth**: Admin
+
+### Request
+
+Send as **multipart/form-data** with a single file field.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `coverImage` | file | Yes | Image file (JPEG, PNG, WEBP, max 5MB) |
+
+### Response
+
+```json
+{
+  "success": true,
+  "coverImage": {
+    "id": 16,
+    "chapterId": 42,
+    "objectUrl": "https://storage.example.com/learningopk/chapters/42/cover/image.png",
+    "mimeType": "image/png",
+    "fileSize": 102400,
+    "createdAt": "2026-04-10T12:00:00.000Z"
+  }
+}
+```
+
+### Notes
+- Only one cover image per chapter (replaces existing)
+- Cover images appear in chapter cards on subject pages
+
+---
+
+## Remove Chapter Cover Image
+
+Remove the cover image from a chapter.
+
+```bash
+DELETE /api/admin/content/chapters/:chapterId/cover-image
+```
+
+**Auth**: Admin
+
+### Response
+
+```json
+{
+  "success": true
+}
+```
+
+### Notes
+- Safe to call even if no cover image exists

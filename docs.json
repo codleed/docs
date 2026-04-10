@@ -51,19 +51,35 @@
               "api/learn",
               "api/quiz",
               "api/mock-exams",
-              "api/progress"
+              "api/progress",
+              "api/notes",
+              "api/flashcard-reviews"
             ]
           },
           {
             "group": "AI Tutor",
             "pages": [
-              "api/ai-chat"
+              "api/ai-chat",
+              "api/ai-context"
             ]
           },
           {
             "group": "Community",
             "pages": [
               "api/forum"
+            ]
+          },
+          {
+            "group": "Gamification",
+            "pages": [
+              "api/leaderboard",
+              "api/formulas"
+            ]
+          },
+          {
+            "group": "Collaboration",
+            "pages": [
+              "api/study-groups"
             ]
           },
           {
@@ -99,7 +115,12 @@
               "frontend/forum",
               "frontend/mock-exams",
               "frontend/stats",
-              "frontend/admin"
+              "frontend/admin",
+              "frontend/notes",
+              "frontend/formulas",
+              "frontend/leaderboard",
+              "frontend/study-groups",
+              "frontend/spaced-repetition"
             ]
           },
           {

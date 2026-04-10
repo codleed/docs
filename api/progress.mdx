@@ -99,6 +99,114 @@ curl -X POST http://localhost:3001/api/progress/events \
 
 ---
 
+## Streak Wager
+
+Place a wager to protect your streak. If you fail, you lose the wagered XP instead of your streak.
+
+```bash
+POST /api/progress/streak-wager
+```
+
+**Auth**: Student
+
+### Request body
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `wagerAmount` | number | XP amount to wager (minimum 10, must have sufficient XP) |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "wagerId": 1,
+    "wagerAmount": 50,
+    "status": "active",
+    "expiresAt": "2026-04-11T00:00:00.000Z"
+  }
+}
+```
+
+### Notes
+- If streak breaks, user loses wagered XP instead of streak
+- If streak continues, no penalty
+- Only one active wager at a time
+
+---
+
+## Recover Streak Wager
+
+Attempt to recover a broken streak wager by answering a recovery question.
+
+```bash
+POST /api/progress/streak-wager/recover
+```
+
+**Auth**: Student
+
+### Request body
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `wagerId` | number | The wager ID to recover |
+| `answer` | string | Answer to recovery question |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "recovered": true,
+    "wagerAmount": 50,
+    "streak": 12
+  }
+}
+```
+
+### Notes
+- Recovery is time-limited
+- If successful, streak is restored and wager is returned
+
+---
+
+## Complete Today's Focus
+
+Mark today's focus task as complete and claim the associated XP reward.
+
+```bash
+POST /api/progress/todays-focus/complete
+```
+
+**Auth**: Student
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "completed": true,
+    "xpEarned": 5,
+    "currentStreak": 15,
+    "nextFocus": {
+      "type": "chapter_visit",
+      "chapterId": 5,
+      "xpReward": 5
+    }
+  }
+}
+```
+
+### Notes
+- Called when user completes their daily focus task
+- Focus tasks are dynamically generated based on learning goals
+- XP reward varies by task type
+
+---
+
 ## Get dashboard
 
 Retrieve the authenticated user's learning dashboard with overall statistics.

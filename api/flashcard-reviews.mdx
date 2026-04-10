@@ -1,0 +1,221 @@
+---
+title: Flashcard Reviews API
+description: Spaced Repetition System (SRS) — review due flashcards, track statistics, and manage review intervals.
+---
+
+## Overview
+
+The Flashcard Reviews API implements a spaced repetition system (SRS) for effective memorization. Students review overdue flashcards and the system adjusts review intervals based on performance.
+
+---
+
+## Get due reviews
+
+Retrieve all flashcards that are due for review for the authenticated user.
+
+```bash
+GET /api/flashcard-reviews/due
+```
+
+**Auth**: Student
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "dueCards": [
+      {
+        "id": 1,
+        "flashcardId": 42,
+        "chapterId": 5,
+        "chapterTitle": "Newton's Laws",
+        "subjectId": 3,
+        "subjectName": "Physics",
+        "front": "What is Newton's First Law?",
+        "back": "An object at rest stays at rest...",
+        "dueAt": "2026-04-10T00:00:00.000Z",
+        "intervalDays": 1,
+        "easeFactor": 2.5,
+        "repetitions": 1
+      }
+    ],
+    "totalDue": 5
+  }
+}
+```
+
+### Notes
+- Returns cards sorted by `dueAt` (most overdue first)
+- Cards with `dueAt <= now()` are considered due
+- Includes SRS metadata: `intervalDays`, `easeFactor`, `repetitions`
+
+---
+
+## Get review statistics
+
+Retrieve review statistics for the student's dashboard widget.
+
+```bash
+GET /api/flashcard-reviews/stats
+```
+
+**Auth**: Student
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "totalReviewed": 150,
+    "totalDue": 5,
+    "totalNew": 12,
+    "streak": 7,
+    "averageEaseFactor": 2.65,
+    "masteredCards": 89
+  }
+}
+```
+
+### Statistics definitions
+
+| Field | Description |
+|-------|-------------|
+| `totalReviewed` | Total cards reviewed ever |
+| `totalDue` | Cards due today |
+| `totalNew` | New cards not yet reviewed |
+| `streak` | Consecutive days of reviews |
+| `averageEaseFactor` | Average ease factor across all cards |
+| `masteredCards` | Cards with interval > 21 days |
+
+---
+
+## Submit review rating
+
+Submit a review rating for a flashcard, which updates the SRS algorithm state.
+
+```bash
+POST /api/flashcard-reviews/:cardId/review
+```
+
+**Auth**: Student
+
+### Path parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `cardId` | number | Flashcard review record ID |
+
+### Request body
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `rating` | string | One of: `"again"`, `"hard"`, `"good"`, `"easy"` |
+
+### Rating behavior
+
+| Rating | Next Review | Ease Factor Change |
+|--------|-------------|-------------------|
+| `again` | 1 minute | -0.2 (min 1.3) |
+| `hard` | interval * 1.2 | -0.15 |
+| `good` | interval * easeFactor | No change |
+| `easy` | interval * easeFactor * 1.3 | +0.15 |
+
+### Example
+
+```bash
+curl -X POST http://localhost:3001/api/flashcard-reviews/1/review \
+  -H "Content-Type: application/json" \
+  -H "Cookie: better-auth.session_token=..." \
+  -d '{"rating": "good"}'
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "flashcardId": 42,
+    "nextReviewAt": "2026-04-11T10:00:00.000Z",
+    "intervalDays": 3,
+    "easeFactor": 2.5,
+    "repetitions": 2
+  }
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid card ID or rating |
+| `404` | Review record not found |
+
+---
+
+## Seed reviews
+
+Initialize flashcard reviews when a student completes a deck. Cards marked "known" get 1-day interval; "review" cards are due immediately.
+
+```bash
+POST /api/flashcard-reviews/seed
+```
+
+**Auth**: Student
+
+### Request body
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `chapterId` | number | Chapter ID whose flashcards to seed |
+| `cardStatuses` | object[] | Array of { flashcardId, status } |
+
+### Example
+
+```bash
+curl -X POST http://localhost:3001/api/flashcard-reviews/seed \
+  -H "Content-Type: application/json" \
+  -H "Cookie: better-auth.session_token=..." \
+  -d '{
+    "chapterId": 5,
+    "cardStatuses": [
+      { "flashcardId": 42, "status": "known" },
+      { "flashcardId": 43, "status": "review" }
+    ]
+  }'
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "seeded": 2
+  }
+}
+```
+
+### Notes
+- Called automatically when user completes a flashcard deck
+- Cards with "known" status get 1-day interval
+- Cards with "review" status are due immediately
+
+---
+
+## SRS Algorithm
+
+The system uses a modified SM-2 algorithm:
+
+1. **Ease Factor**: Starts at 2.5, adjusted based on ratings
+2. **Interval**: Days until next review
+3. **Repetitions**: Number of successful reviews
+
+Initial values for new cards:
+- `intervalDays`: 0
+- `easeFactor`: 2.5
+- `repetitions`: 0

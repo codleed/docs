@@ -1,0 +1,136 @@
+---
+title: Formulas API
+description: Formula library — search, star, and track access to mathematical and scientific formulas.
+---
+
+## Overview
+
+The Formulas API provides access to a searchable library of mathematical and scientific formulas. Students can search formulas, star their favorites, and track formula access for analytics.
+
+---
+
+## List formulas
+
+Search and filter the formula library.
+
+```bash
+GET /api/formulas
+```
+
+**Auth**: Student
+
+### Query parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `q` | string? | Search query (max 120 chars) |
+| `subjectId` | number? | Filter by subject ID |
+| `chapterId` | number? | Filter by chapter ID |
+| `tag` | string? | Filter by tag (max 50 chars) |
+
+### Response
+
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "name": "Newton's Second Law",
+      "latex": "F = ma",
+      "description": "Force equals mass times acceleration",
+      "subjectId": 5,
+      "chapterId": 3,
+      "tags": ["mechanics", "force"],
+      "isStarred": false
+    }
+  ],
+  "filters": {
+    "subjects": [
+      { "id": 5, "name": "Physics" },
+      { "id": 7, "name": "Chemistry" }
+    ],
+    "chapters": [...],
+    "tags": [...]
+  }
+}
+```
+
+### Notes
+- Returns both filtered results and available filter options
+- All filters are optional and can be combined
+
+---
+
+## Star formula
+
+Toggle the star status of a formula (add to or remove from favorites).
+
+```bash
+POST /api/formulas/:formulaId/star
+```
+
+**Auth**: Student
+
+### Path parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `formulaId` | number | Formula ID (positive integer) |
+
+### Response
+
+Returns the result from `formulasRepository.toggleStar()`. On successful toggle:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "isStarred": true
+  }
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid formula ID |
+| `404` | Formula not found |
+
+---
+
+## Record formula access
+
+Record when a user accesses a formula (for analytics).
+
+```bash
+POST /api/formulas/:formulaId/access
+```
+
+**Auth**: Student
+
+### Path parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `formulaId` | number | Formula ID (positive integer) |
+
+### Response
+
+`204 No Content` on success.
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid formula ID |
+| `404` | Formula not found |
+
+---
+
+## Notes
+
+- Formulas support LaTeX rendering for mathematical notation
+- Starred formulas appear in the student's dashboard widget
+- Access events are tracked for analytics and personalized recommendations

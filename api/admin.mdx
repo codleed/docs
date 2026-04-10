@@ -818,3 +818,249 @@ Only the following keys are updatable:
 |--------|-----------|
 | `400` | Invalid setting key or value |
 | `404` | Setting key not found (not in updatable list) |
+
+---
+
+## Formulas Management
+
+### List formulas
+
+```bash
+GET /api/admin/content/formulas
+```
+
+**Auth**: Admin
+
+### Query parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `subjectId` | number? | Filter by subject |
+| `chapterId` | number? | Filter by chapter |
+
+### Response
+
+```json
+{
+  "formulas": [
+    {
+      "id": 1,
+      "subjectId": 5,
+      "chapterId": 3,
+      "name": "Newton's Second Law",
+      "formulaLatex": "F = ma",
+      "description": "Force equals mass times acceleration",
+      "variables": ["F", "m", "a"],
+      "tags": ["mechanics", "force"],
+      "createdAt": "2026-03-20T10:00:00.000Z",
+      "updatedAt": "2026-03-20T10:00:00.000Z",
+      "subjectName": "Physics",
+      "chapterTitle": "Newton's Laws"
+    }
+  ],
+  "total": 25
+}
+```
+
+### Create formula
+
+```bash
+POST /api/admin/content/formulas
+```
+
+**Auth**: Admin
+
+### Request body
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `subjectId` | number | Subject ID |
+| `chapterId` | number? | Chapter ID |
+| `name` | string | Formula name |
+| `formulaLatex` | string | LaTeX formula |
+| `description` | string? | Description |
+| `variables` | string[]? | Variable names |
+| `tags` | string[]? | Tags |
+
+### Update formula
+
+```bash
+POST /api/admin/content/formulas/:id/update
+```
+
+**Auth**: Admin
+
+### Delete formula
+
+```bash
+POST /api/admin/content/formulas/:id/delete
+```
+
+**Auth**: Admin
+
+---
+
+## Past Papers Management
+
+### List past papers
+
+```bash
+GET /api/admin/content/past-papers
+```
+
+**Auth**: Admin
+
+### Query parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `subjectId` | number? | Filter by subject |
+| `year` | number? | Filter by year |
+
+### Response
+
+```json
+{
+  "papers": [
+    {
+      "id": 1,
+      "subjectId": 5,
+      "subjectName": "Physics",
+      "year": 2024,
+      "paperType": "annual",
+      "title": "Physics Paper 2024",
+      "paperContent": "## Section A\n\n1. Define...",
+      "createdAt": "2026-03-20T10:00:00.000Z"
+    }
+  ],
+  "total": 10
+}
+```
+
+### Create past paper
+
+```bash
+POST /api/admin/content/past-papers
+```
+
+**Auth**: Admin
+
+### Request body
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `subjectId` | number | Subject ID |
+| `year` | number | Year |
+| `paperType` | string | Type (annual, supply) |
+| `title` | string | Paper title |
+| `paperContent` | string | Markdown content |
+
+### Update past paper
+
+```bash
+POST /api/admin/content/past-papers/:id/update
+```
+
+**Auth**: Admin
+
+### Delete past paper
+
+```bash
+POST /api/admin/content/past-papers/:id/delete
+```
+
+**Auth**: Admin
+
+---
+
+## Quiz Questions Management
+
+### List quiz questions
+
+```bash
+GET /api/admin/content/quiz-questions?quizId=N
+```
+
+**Auth**: Admin
+
+### Query parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `quizId` | number? | Filter by quiz |
+
+### Add quiz question
+
+```bash
+POST /api/admin/content/quiz-questions
+```
+
+**Auth**: Admin
+
+### Request body
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `quizId` | number | Quiz ID |
+| `question` | string | Question text |
+| `optionA` | string | Option A |
+| `optionB` | string | Option B |
+| `optionC` | string | Option C |
+| `optionD` | string | Option D |
+| `correctOption` | string | Correct option (a/b/c/d) |
+| `explanation` | string? | Explanation |
+| `marks` | number | Marks |
+
+### Update quiz question
+
+```bash
+POST /api/admin/content/quiz-questions/:id/update
+```
+
+**Auth**: Admin
+
+### Delete quiz question
+
+```bash
+POST /api/admin/content/quiz-questions/:id/delete
+```
+
+**Auth**: Admin
+
+---
+
+## Revision Notes Management
+
+### Get revision notes
+
+```bash
+GET /api/admin/content/chapters/:id/revision-notes
+```
+
+**Auth**: Admin
+
+### Response
+
+```json
+{
+  "id": 1,
+  "chapterId": 5,
+  "content": "## Key Formulas\n\n- F = ma\n\n## Important Definitions\n\n...",
+  "createdAt": "2026-03-20T10:00:00.000Z",
+  "updatedAt": "2026-03-20T10:00:00.000Z"
+}
+```
+
+### Update revision notes
+
+```bash
+POST /api/admin/content/chapters/:id/revision-notes
+```
+
+**Auth**: Admin
+
+### Request body
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | string | Markdown content (key formulas, definitions, tips) |

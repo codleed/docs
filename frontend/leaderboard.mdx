@@ -1,0 +1,93 @@
+---
+title: Leaderboard Page
+description: Student rankings and competition — view leaderboards by XP, streak, or quiz scores.
+---
+
+## Overview
+
+The Leaderboard page displays student rankings across different scopes and metrics. Students can see how they compare with peers and compete for top positions.
+
+---
+
+## Page Structure
+
+```
+/leaderboard
+```
+
+### Components
+
+| Component | Description |
+|-----------|-------------|
+| `leaderboard-page-client.tsx` | Main page client component |
+
+### Features
+
+- **Multiple scopes** — Global, board-specific, or school-specific rankings
+- **Multiple metrics** — XP, streak days, or quiz completion
+- **User's rank** — Highlighted position showing current user's standing
+- **Top players** — Featured top 10 with avatars and scores
+
+---
+
+## User Interactions
+
+### Switching Scope
+
+1. Click scope dropdown (Global/Board/School)
+2. Rankings update to show relevant group
+3. User's rank adjusts accordingly
+
+### Switching Metric
+
+1. Click metric dropdown (XP/Streak/Quizzes)
+2. Rankings re-sort by selected metric
+3. Different players may rise to top
+
+### Viewing Other Players
+
+1. Click on any player row to view profile
+2. See their recent activity and stats
+3. Compare performance
+
+---
+
+## Integration
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/leaderboard` | Get rankings with scope and metric |
+
+### Query Parameters
+
+| Parameter | Values | Description |
+|-----------|--------|-------------|
+| `scope` | global, board, school | Ranking group |
+| `metric` | xp, streak, quizzes | Sort by metric |
+
+### Data Flow
+
+1. Page loads → Fetch leaderboard with default params
+2. User changes scope → Refetch with new scope
+3. User changes metric → Refetch with new metric
+
+---
+
+## User Rank Display
+
+The user's position is highlighted in the leaderboard:
+
+- Shows current rank number
+- Shows score for selected metric
+- Shows gap to top positions
+
+---
+
+## Design Considerations
+
+- **Rank numbers** — Clear 1, 2, 3 formatting with podium styling for top 3
+- **Avatar display** — Show user avatars for personalization
+- **Metric badges** — Visual distinction between XP, streak, quiz counts
+- **Scope indicator** — Clear labeling of current ranking scope

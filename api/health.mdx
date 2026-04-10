@@ -77,3 +77,49 @@ Use the `503` status code in load balancer health checks to automatically remove
 | Status | Condition |
 |--------|-----------|
 | `503` | One or more dependencies (PostgreSQL, Redis) are unreachable |
+
+---
+
+## Performance Stats
+
+Get backend performance statistics for monitoring. Requires admin role.
+
+```bash
+GET /api/health/performance
+```
+
+**Auth**: Admin
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "uptime": 86400,
+    "memory": {
+      "used": 256,
+      "total": 512,
+      "percentage": 50
+    },
+    "requests": {
+      "total": 15000,
+      "lastHour": 2500,
+      "averageResponseTime": 45
+    },
+    "database": {
+      "activeConnections": 12,
+      "idleConnections": 8,
+      "queriesPerSecond": 150
+    },
+    "cache": {
+      "hitRate": 0.85,
+      "memoryUsed": "128MB"
+    }
+  }
+}
+```
+
+### Notes
+- Only available to admin users
+- Provides insights into system performance and resource usage

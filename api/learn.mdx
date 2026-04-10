@@ -206,3 +206,107 @@ Quiz questions do **not** include `correctOption` or `explanation` in this respo
 |--------|-----------|
 | `400` | Invalid route parameters |
 | `404` | Chapter not found |
+
+---
+
+## Get Exam Patterns
+
+Retrieve exam pattern analysis for a subject, showing which chapters frequently appear in exams.
+
+```bash
+GET /api/learn/patterns/:board/:subject
+```
+
+**Auth**: None
+
+### Path parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `board` | string | Board slug |
+| `subject` | string | Subject slug |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "board": "punjab",
+    "subject": "physics",
+    "patterns": [
+      {
+        "chapterId": 1,
+        "chapterTitle": "Physical Quantities",
+        "weightage": 15,
+        "frequency": "very_high",
+        "topics": ["measurement", "units", "scalars", "vectors"]
+      },
+      {
+        "chapterId": 5,
+        "chapterTitle": "Newton's Laws",
+        "weightage": 20,
+        "frequency": "high",
+        "topics": ["force", "acceleration", "friction", "tension"]
+      }
+    ],
+    "summary": {
+      "totalChapters": 10,
+      "coveredChapters": 8,
+      "averageWeightage": 12.5
+    }
+  }
+}
+```
+
+### Weightage levels
+
+| Level | Description |
+|-------|-------------|
+| `very_high` | 15%+ exam weight |
+| `high` | 10-15% exam weight |
+| `medium` | 5-10% exam weight |
+| `low` | <5% exam weight |
+
+---
+
+## Get Personalized Revision Notes
+
+Generate AI-powered personalized revision notes for a chapter based on the student's weak areas.
+
+```bash
+POST /api/learn/revision/:chapterId/personalize
+```
+
+**Auth**: Student
+
+### Path parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `chapterId` | number | Chapter ID |
+
+### Request body
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `focusAreas` | string[]? | Specific topics to focus on (optional) |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "chapterId": 5,
+    "revisionNotes": "## Key Concepts\n\n### Newton's First Law (Inertia)\nAn object at rest stays at rest...",
+    "focusedTopics": ["force", "acceleration"],
+    "generatedAt": "2026-04-10T10:00:00.000Z"
+  }
+}
+```
+
+### Notes
+- Uses student's AI context (weak/strong topics) to personalize
+- Returns markdown-formatted revision notes
+- Cached for 1 hour to avoid repeated AI calls

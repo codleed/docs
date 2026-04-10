@@ -1,0 +1,176 @@
+---
+title: Study Groups API
+description: Collaborative study groups — create, join, and manage group study sessions.
+---
+
+## Overview
+
+The Study Groups API allows students to create and join collaborative study groups. Group members can study together, track collective progress, and compete in group challenges.
+
+---
+
+## List study groups
+
+Retrieve all study groups the authenticated user belongs to.
+
+```bash
+GET /api/study-groups
+```
+
+**Auth**: Student
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Physics Masters",
+      "createdAt": "2026-03-15T10:00:00.000Z",
+      "memberCount": 5,
+      "members": [
+        { "userId": 1, "name": "Ali Ahmed", "role": "admin" },
+        { "userId": 2, "name": "Sara Khan", "role": "member" }
+      ],
+      "recentActivity": {
+        "chapterCompleted": "Newton's Laws",
+        "completedAt": "2026-04-10T09:30:00.000Z"
+      }
+    }
+  ]
+}
+```
+
+### Notes
+- Only returns groups where the authenticated user is a member
+- Includes member list and recent group activity
+
+---
+
+## Create study group
+
+Create a new study group and optionally invite other students.
+
+```bash
+POST /api/study-groups
+```
+
+**Auth**: Student
+
+### Request body
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Group name (required, 2-80 chars) |
+| `invites` | string[]? | Array of email addresses to invite (max 5) |
+
+### Example
+
+```bash
+curl -X POST http://localhost:3001/api/study-groups \
+  -H "Content-Type: application/json" \
+  -H "Cookie: better-auth.session_token=..." \
+  -d '{
+    "name": "Chemistry Study Circle",
+    "invites": ["friend1@email.com", "friend2@email.com"]
+  }'
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Chemistry Study Circle",
+    "createdAt": "2026-04-10T10:00:00.000Z",
+    "invitedEmails": ["friend1@email.com", "friend2@email.com"]
+  }
+}
+```
+
+### Notes
+- The creator becomes the group admin
+- Invited users receive notifications to join
+- Group ID is a UUID
+
+---
+
+## Get study group
+
+Retrieve detailed information about a specific study group.
+
+```bash
+GET /api/study-groups/:groupId
+```
+
+**Auth**: Student (member only)
+
+### Path parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `groupId` | string | Group UUID |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Physics Masters",
+    "createdAt": "2026-03-15T10:00:00.000Z",
+    "createdBy": {
+      "userId": 1,
+      "name": "Ali Ahmed"
+    },
+    "members": [
+      { "userId": 1, "name": "Ali Ahmed", "role": "admin", "joinedAt": "2026-03-15T10:00:00.000Z" },
+      { "userId": 2, "name": "Sara Khan", "role": "member", "joinedAt": "2026-03-16T14:00:00.000Z" }
+    ],
+    "activities": [
+      {
+        "type": "chapter_completed",
+        "userId": 2,
+        "userName": "Sara Khan",
+        "chapterTitle": "Kinematics",
+        "completedAt": "2026-04-10T09:30:00.000Z"
+      },
+      {
+        "type": "quiz_score_beaten",
+        "userId": 1,
+        "userName": "Ali Ahmed",
+        "score": 95,
+        "completedAt": "2026-04-10T08:00:00.000Z"
+      }
+    ],
+    "groupStats": {
+      "totalChaptersCompleted": 45,
+      "totalQuizzesTaken": 120,
+      "averageScore": 82.5
+    }
+  }
+}
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `404` | Group not found |
+
+### Notes
+- Only group members can access group details
+- Includes activity feed and group statistics
+
+---
+
+## Notes
+
+- Group IDs use UUID format
+- Maximum 5 invites per group creation
+- Group admins can manage member roles (future endpoint)

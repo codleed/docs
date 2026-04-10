@@ -1,0 +1,101 @@
+---
+title: Notes Page
+description: Student notes management — create, edit, organize, and search personal study notes.
+---
+
+## Overview
+
+The Notes page allows students to create, manage, and organize their personal study notes. Notes can be tagged, associated with specific subjects and chapters, and searched using full-text search.
+
+---
+
+## Page Structure
+
+```
+/notes
+```
+
+### Components
+
+| Component | Description |
+|-----------|-------------|
+| `notes-page-client.tsx` | Main page client component |
+| `add-to-notes-dialog.tsx` | Dialog for quickly adding notes from chapter context |
+
+### Features
+
+- **Full-text search** — Search notes by title and content
+- **Filter by subject/chapter** — Narrow down notes by curriculum context
+- **Tag management** — Add and filter by custom tags
+- **Quick add** — Add notes directly from chapter view
+
+---
+
+## User Interactions
+
+### Creating a Note
+
+1. Navigate to `/notes`
+2. Click "Add Note" button
+3. Enter title and content
+4. Optionally associate with subject/chapter
+5. Add tags for organization
+6. Save
+
+### Searching Notes
+
+- Use the search bar to search by title or content
+- Use filter dropdowns to filter by subject or chapter
+- Click on tags to filter by tag
+
+### Editing a Note
+
+1. Click on a note card to open
+2. Edit title, content, or associations
+3. Changes auto-save on blur
+
+### Deleting a Note
+
+1. Click on a note card to open
+2. Click delete button
+3. Confirm deletion in dialog
+
+---
+
+## Integration
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/notes` | List user's notes |
+| POST | `/api/notes` | Create new note |
+| PUT | `/api/notes/:id` | Update note |
+| DELETE | `/api/notes/:id` | Delete note |
+
+### Data Flow
+
+1. Page loads → Fetch notes via `GET /api/notes`
+2. User creates note → POST to `/api/notes`
+3. User edits note → PUT to `/api/notes/:id`
+4. User deletes note → DELETE to `/api/notes/:id`
+5. Search/filter → Refetch with query params
+
+---
+
+## Quick Add from Chapter
+
+The `add-to-notes-dialog.tsx` component allows students to quickly add notes while studying a chapter:
+
+1. Available in chapter study view
+2. Pre-fills subject and chapter association
+3. Quick save for efficient note-taking
+
+---
+
+## Design Considerations
+
+- **Card layout** — Notes displayed as cards with title preview
+- **Tag chips** — Visual tag chips for quick filtering
+- **Empty state** — Helpful prompt to create first note
+- **Responsive** — Works on mobile with touch-friendly interactions

@@ -1,0 +1,100 @@
+---
+title: Study Groups
+description: Collaborative study groups — create, join, and study with peers.
+---
+
+## Overview
+
+The Study Groups feature allows students to create and join collaborative study groups. Group members can track collective progress, share activity, and compete together.
+
+---
+
+## Page Structure
+
+```
+/study-groups
+```
+
+### Components
+
+| Component | Description |
+|-----------|-------------|
+| `study-groups-panel.tsx` | Dashboard widget showing user's groups |
+| `study-group-detail-client.tsx` | Detailed view of a specific group |
+
+### Features
+
+- **Create groups** — Start a new study group with a name
+- **Invite peers** — Invite up to 5 classmates via email
+- **View members** — See group members and their roles
+- **Activity feed** - Track group progress and achievements
+- **Group stats** — View collective statistics
+
+---
+
+## User Interactions
+
+### Creating a Study Group
+
+1. Navigate to study groups section
+2. Click "Create Group" button
+3. Enter group name (2-80 characters)
+4. Optionally invite up to 5 peers by email
+5. Submit to create group
+
+### Viewing Groups
+
+1. Dashboard shows list of joined groups
+2. Click on a group to see details
+3. View member list, activity, and stats
+
+### Group Activity
+
+- **Chapter completed** — When a member finishes a chapter
+- **Quiz score beaten** — When a member beats another member's score
+
+---
+
+## Integration
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/study-groups` | List user's groups |
+| POST | `/api/study-groups` | Create new group |
+| GET | `/api/study-groups/:groupId` | Get group details |
+
+### Data Flow
+
+1. Dashboard loads → Fetch groups via `GET /api/study-groups`
+2. User creates group → POST to `/api/study-groups`
+3. User views group → GET `/api/study-groups/:id`
+
+---
+
+## Roles
+
+| Role | Description |
+|------|-------------|
+| `admin` | Created by founder, can manage group |
+| `member` | Regular group member |
+
+---
+
+## Dashboard Widget
+
+The study groups panel appears on the student dashboard:
+
+- Shows joined groups with member count
+- Recent group activity preview
+- Quick access to group details
+
+---
+
+## Design Considerations
+
+- **Card layout** — Groups displayed as cards with key info
+- **Activity stream** — Recent activity shows group engagement
+- **Member avatars** — Show who's in the group
+- **Empty state** — Prompt to create or join first group

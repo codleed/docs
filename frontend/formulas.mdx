@@ -1,0 +1,97 @@
+---
+title: Formula Library
+description: Browse, search, and star mathematical and scientific formulas.
+---
+
+## Overview
+
+The Formula Library page provides students with access to a searchable collection of mathematical and scientific formulas. Students can star their favorites for quick access and track formula usage.
+
+---
+
+## Page Structure
+
+```
+/formulas
+```
+
+### Components
+
+| Component | Description |
+|-----------|-------------|
+| `formula-library-client.tsx` | Main page client component |
+
+### Features
+
+- **Search formulas** — Full-text search by name, description, or LaTeX
+- **Filter by subject/chapter** — Navigate by curriculum context
+- **Filter by tags** — Browse formulas by category (e.g., "mechanics", "thermodynamics")
+- **Star favorites** — Mark formulas as favorites for dashboard widget
+- **LaTeX rendering** — Beautiful mathematical notation display
+
+---
+
+## User Interactions
+
+### Searching
+
+1. Use search bar to type formula name or keyword
+2. Results update in real-time
+3. Clear search to show all formulas
+
+### Filtering
+
+- **By Subject** — Select a subject to see related formulas
+- **By Chapter** — Further narrow down to specific chapter
+- **By Tag** — Click tags to filter by category
+
+### Starring Formulas
+
+1. Click the star icon on any formula card
+2. Starred formulas appear in the dashboard widget
+3. Click again to unstar
+
+### Accessing Formulas
+
+1. Click on a formula card to view details
+2. Full LaTeX rendering with explanation
+3. Access is recorded for analytics
+
+---
+
+## Integration
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/formulas` | List formulas with filters |
+| POST | `/api/formulas/:formulaId/star` | Toggle star status |
+| POST | `/api/formulas/:formulaId/access` | Record access |
+
+### Data Flow
+
+1. Page loads → Fetch formulas via `GET /api/formulas`
+2. User searches → Refetch with `q` param
+3. User filters → Refetch with filter params
+4. User stars → POST to `/api/formulas/:id/star`
+5. User views → POST to `/api/formulas/:id/access`
+
+---
+
+## Dashboard Widget
+
+Starred formulas appear in the student's dashboard for quick reference:
+
+- Shows up to 5 starred formulas
+- Click to navigate to formula detail
+- Quick access without visiting library
+
+---
+
+## Design Considerations
+
+- **LaTeX rendering** — Uses KaTeX for fast, accurate math display
+- **Card grid** — Responsive grid of formula cards
+- **Category tags** — Visual tags for quick identification
+- **Search highlighting** — Show matching terms in results

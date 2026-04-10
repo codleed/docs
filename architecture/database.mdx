@@ -1,9 +1,9 @@
 ---
 title: "Database"
-description: "PostgreSQL database schema for LearningoPK — 28 tables covering users, curriculum, content, assessments, AI interactions, community, and administration."
+description: "PostgreSQL database schema for LearningoPK — 45 tables covering users, curriculum, content, assessments, AI interactions, community, and administration."
 ---
 
-The LearningoPK database uses **PostgreSQL 16** with **Drizzle ORM** for type-safe queries and migrations. The schema is defined in `backend/src/lib/db/schema.ts` and consists of 22 tables with 18 custom PostgreSQL enums.
+The LearningoPK database uses **PostgreSQL 16** with **Drizzle ORM** for type-safe queries and migrations. The schema is defined in `backend/src/lib/db/schema.ts` and consists of **45 tables** with 18 custom PostgreSQL enums.
 
 <Note>
   PostgreSQL is exposed on host port **5433** (mapped from container port 5432) to avoid conflicts with local PostgreSQL installations. Connections go through **PgBouncer** on port 6432 in transaction pooling mode.
@@ -177,6 +177,61 @@ Tracked metrics per chapter:
 |-------|-------------|-------------|
 | `institutes` | `serial` | Educational institute records |
 
+### Spaced Repetition (SRS)
+
+| Table | Primary key | Description |
+|-------|-------------|-------------|
+| `flashcard_reviews` | `serial` | User's flashcard review state with SRS algorithm data (interval, ease factor, repetitions) |
+
+### Gamification & Goals
+
+| Table | Primary key | Description |
+|-------|-------------|-------------|
+| `user_daily_momentum_goals` | `serial` | Daily XP goals with target and completion status |
+| `streak_wagers` | `uuid` | Streak protection wagers (stake XP to protect streak) |
+| `user_starred_formulas` | `uuid` | User's favorite/starred formulas |
+
+### AI Context & Learning
+
+| Table | Primary key | Description |
+|-------|-------------|-------------|
+| `ai_context` | `uuid` | User's AI learning preferences (weak/strong topics, explanation style) |
+| `ai_conversation_events` | `uuid` | AI conversation analytics events (crisis detection, confusion signals) |
+
+### Student Notes
+
+| Table | Primary key | Description |
+|-------|-------------|-------------|
+| `student_notes` | `uuid` | User-created study notes with title, content, subject/chapter association, and tags |
+
+### Formulas Library
+
+| Table | Primary key | Description |
+|-------|-------------|-------------|
+| `formulas` | `serial` | Mathematical/scientific formulas with LaTeX, subject, chapter, and tags |
+| `formula_access_events` | `uuid` | Track when users access formulas for analytics |
+
+### Study Groups
+
+| Table | Primary key | Description |
+|-------|-------------|-------------|
+| `study_groups` | `uuid` | Collaborative study groups with name and creator |
+| `study_group_members` | `uuid` | Membership in study groups with role (admin/member) |
+| `study_group_activities` | `uuid` | Activity feed within study groups (chapter completed, quiz beaten) |
+
+### Quiz Duels
+
+| Table | Primary key | Description |
+|-------|-------------|-------------|
+| `quiz_duel_challenges` | `uuid` | Peer-to-peer quiz challenges between students |
+
+### Exam Analysis
+
+| Table | Primary key | Description |
+|-------|-------------|-------------|
+| `exam_analysis` | `serial` | Chapter occurrence analysis in exams (weightage, frequency) |
+| `revision_notes` | `uuid` | Key formulas, definitions, and exam tips per chapter |
+
 ## Enums
 
 The schema defines 18 PostgreSQL enums for type-safe constrained values:
@@ -198,6 +253,8 @@ The schema defines 18 PostgreSQL enums for type-safe constrained values:
 | `admin_audit_status` | success, failed |
 | `notification_audience` | all, students, admins |
 | `notification_status` | sent |
+| `streak_wager_status` | active, won, lost |
+| `study_group_activity_type` | chapter_completed, quiz_score_beaten |
 
 ## Key indexes
 
